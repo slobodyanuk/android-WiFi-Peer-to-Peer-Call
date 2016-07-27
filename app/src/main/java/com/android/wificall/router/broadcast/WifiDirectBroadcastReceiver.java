@@ -107,7 +107,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
                     ((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)).deviceName,
                     ((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)).deviceAddress));
 
-            //Launch receiver and sender once connected to someone
+                //Launch receiver and sender once connected to someone
             if (!Receiver.running) {
                 Receiver r = new Receiver(this.mActivity);
                 new Thread(r).start();

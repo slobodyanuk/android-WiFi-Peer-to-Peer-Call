@@ -1,12 +1,9 @@
 package com.android.wificall.view.activity;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -14,11 +11,12 @@ import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.android.wificall.R;
 import com.android.wificall.data.event.ActivityEvent;
-import com.android.wificall.router.Configuration;
+import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
@@ -28,18 +26,24 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import butterknife.BindView;
 import butterknife.OnClick;
 
 public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.ChannelListener, DeviceActionListener {
 
+    private static String TAG = WifiDirectActivity.class.getClass().getName();
     public static boolean isGroupOwner = false;
-    public static boolean isVisible = false;
+    private boolean isVisible = false;
     private final IntentFilter mIntentFilter = new IntentFilter();
     private final IntentFilter mWifiIntentFilter = new IntentFilter();
-    private String TAG = WifiDirectActivity.this.getClass().getName();
+
+    @BindView(R.id.btn_call)
+    Button mCallButton;
+
     private boolean isWifiP2pEnabled = false;
     private boolean retryChannel = false;
     private boolean isWifiConnected;
+
     private WifiP2pManager mWifiManager;
     private WifiP2pManager.Channel mWifiChannel;
     private WifiDirectBroadcastReceiver mReceiver = null;
@@ -53,6 +57,9 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     public void onResume() {
         super.onResume();
+        if (!isGroupOwner) {
+            mCallButton.setEnabled(false);
+        }
         mReceiver = new WifiDirectBroadcastReceiver(mWifiManager, mWifiChannel, this);
         registerReceiver(mReceiver, mIntentFilter);
         isVisible = true;
@@ -61,45 +68,11 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (!isGroupOwner) {
+            mCallButton.setEnabled(false);
+        }
         initOwnerDialog();
         initRouterSettings();
-
-    }
-
-    public void connectToAccessPoint(String ssid, String passphrase) {
-
-        Log.d(TAG, "Trying to connect to AP : (" + ssid + "," + passphrase + ")");
-
-        WifiConfiguration wc = new WifiConfiguration();
-        wc.SSID = "\"" + ssid + "\"";
-        wc.preSharedKey = "\"" + passphrase + "\""; // "\""+passphrase+"\"";
-        wc.status = WifiConfiguration.Status.ENABLED;
-        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-        wc.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-        wc.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-        wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-        wc.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-        wc.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-        // connect to and enable the connection
-        WifiManager manager =  (WifiManager) getSystemService(Context.WIFI_SERVICE);;
-        int netId = manager.addNetwork(wc);
-        manager.enableNetwork(netId, true);
-        manager.setWifiEnabled(true);
-
-        Log.d(TAG, "Connected? ip = " + manager.getConnectionInfo().getIpAddress());
-        Log.d(TAG, "Connected? bssid = " + manager.getConnectionInfo().getBSSID());
-        Log.d(TAG, "Connected? ssid = " + manager.getConnectionInfo().getSSID());
-
-        if (manager.getConnectionInfo().getIpAddress() != 0) {
-            this.isWifiConnected = true;
-            Toast.makeText(this, "Connected!!! ip = " + manager.getConnectionInfo().getIpAddress(),
-                    Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(
-                    this,
-                    "WiFi AP connection failed... ip = " + manager.getConnectionInfo().getIpAddress() + "(" + ssid
-                            + "," + passphrase + ")", Toast.LENGTH_LONG).show();
-        }
 
     }
 
@@ -117,6 +90,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
                     public void onClick(DialogInterface dialog, int which) {
                         isGroupOwner = true;
                         mReceiver.createGroup();
+                        mCallButton.setEnabled(true);
                     }
                 })
                 .setNegativeButton("No", null)
@@ -124,6 +98,9 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     }
 
     private void initRouterSettings() {
+        if (isGroupOwner) {
+            mCallButton.setEnabled(true);
+        }
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
@@ -216,6 +193,15 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(ActivityEvent event) {
         Toast.makeText(this, event.getMsg(), Toast.LENGTH_SHORT).show();
+        if (event.isJoin() && !isGroupOwner) {
+            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
+                mCallButton.setEnabled(true);
+            }
+        } else if (!event.isJoin() && !isGroupOwner) {
+            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
+                mCallButton.setEnabled(false);
+            }
+        }
     }
 
     @Override
@@ -225,10 +211,12 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
+                mCallButton.setEnabled(true);
             }
 
             @Override
             public void onFailure(int reason) {
+                mCallButton.setEnabled(false);
                 Toast.makeText(WifiDirectActivity.this, "Connect failed. Retry.", Toast.LENGTH_SHORT).show();
             }
         });
@@ -277,6 +265,10 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         super.onPause();
         unregisterReceiver(mReceiver);
         isVisible = false;
+    }
+
+    public boolean isVisible(){
+        return isVisible;
     }
 
     @Override

@@ -1,16 +1,23 @@
 package com.android.wificall.router;
 
+import android.app.usage.UsageEvents;
+import android.telecom.Call;
+
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.ActivityEvent;
+import com.android.wificall.data.event.CallingEndingEvent;
 import com.android.wificall.data.event.MessageEvent;
 import com.android.wificall.data.event.UpdateChatMessageEvent;
 import com.android.wificall.router.tcp.TcpReceiver;
+import com.android.wificall.view.activity.CallActivity;
 import com.android.wificall.view.activity.WifiDirectActivity;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -23,32 +30,46 @@ public class Receiver implements Runnable {
     private static WifiDirectActivity activity;
 
     public Receiver(WifiDirectActivity a) {
-        Receiver.activity = a;
+        activity = a;
         running = true;
     }
 
-    public static void somebodyJoined(String smac) {
+    public static void somebodyJoined(String smac, String ip) {
         final String message;
         final String msg;
         message = msg = smac + " has joined.";
         final String name = smac;
-        if (activity.isVisible) {
-            EventBus.getDefault().post(new ActivityEvent(msg));
+        if (activity.isVisible()) {
+            EventBus.getDefault().post(new ActivityEvent(msg, smac, true));
         } else {
             EventBus.getDefault().post(new MessageEvent(name, msg));
         }
+
+        try {
+            CallActivity.addJoinedAddress(InetAddress.getByName(ip));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
     }
 
-    public static void somebodyLeft(String smac) {
+    public  static void somebodyLeft(String smac, String ip) {
         final String message;
         final String msg;
         message = msg = smac + " has left.";
         final String name = smac;
-        if (activity.isVisible) {
-            EventBus.getDefault().post(new ActivityEvent(msg));
+        if (activity.isVisible()) {
+            EventBus.getDefault().post(new ActivityEvent(msg, smac, false));
         } else {
             EventBus.getDefault().post(new MessageEvent(name, msg));
         }
+
+        try {
+            CallActivity.removeLeftAddress(InetAddress.getByName(ip));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public static void updatePeerList() {
@@ -96,7 +117,7 @@ public class Receiver implements Runnable {
                 Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, p.getSenderMac(), NetworkManager.getSelf()
                         .getMac());
                 Sender.queuePacket(ack);
-                somebodyJoined(p.getSenderMac());
+                somebodyJoined(p.getSenderMac(), p.getSenderIP());
                 updatePeerList();
             } else {
                 // If you're the intended target for a non hello message
@@ -105,7 +126,7 @@ public class Receiver implements Runnable {
                     if (p.getType().equals(Packet.TYPE.HELLO_ACK)) {
                         NetworkManager.deserializeRoutingTableAndAdd(p.getData());
                         NetworkManager.getSelf().setGroupOwnerMac(p.getSenderMac());
-                        somebodyJoined(p.getSenderMac());
+                        somebodyJoined(p.getSenderMac(), p.getSenderIP());
                         updatePeerList();
                     } else if (p.getType().equals(Packet.TYPE.UPDATE)) {
                         //if it's an update, add to the table
@@ -116,7 +137,7 @@ public class Receiver implements Runnable {
 
                         final String message = emb_mac + " joined the conversation";
                         final String name = p.getSenderMac();
-                        if (activity.isVisible) {
+                        if (activity.isVisible()) {
                             EventBus.getDefault().post(new ActivityEvent(message));
                         } else {
                             EventBus.getDefault().post(new MessageEvent(name, message));
@@ -141,13 +162,13 @@ public class Receiver implements Runnable {
                                             NetworkManager.getSelf().getGroupOwnerMac()));
                         }
 
-                        if (activity.isVisible) {
+                        if (activity.isVisible()) {
                             EventBus.getDefault().post(new ActivityEvent(message));
                         } else {
                             EventBus.getDefault().post(new MessageEvent(name, msg));
                         }
                         updatePeerList();
-                    } else {
+                    }else{
                         // otherwise forward it if you're not the recipient
                         int ttl = p.getTtl();
                         // Have a ttl so that they don't bounce around forever

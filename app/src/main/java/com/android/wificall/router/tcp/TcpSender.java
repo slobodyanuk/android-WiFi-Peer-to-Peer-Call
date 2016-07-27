@@ -27,7 +27,7 @@ public class TcpSender {
 
         } catch (Exception e) {
             NetworkManager.routingTable.remove(data.getMac());
-            Receiver.somebodyLeft(data.getMac());
+            Receiver.somebodyLeft(data.getMac(), data.getSenderIP());
             Receiver.updatePeerList();
             e.printStackTrace();
             return false;
@@ -42,7 +42,7 @@ public class TcpSender {
             tcpSocket.close();
         } catch (Exception e) {
             NetworkManager.routingTable.remove(data.getMac());
-            Receiver.somebodyLeft(data.getMac());
+            Receiver.somebodyLeft(data.getMac(), data.getSenderIP());
             Receiver.updatePeerList();
             e.printStackTrace();
         }
