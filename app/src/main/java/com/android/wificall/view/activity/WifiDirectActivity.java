@@ -1,9 +1,14 @@
 package com.android.wificall.view.activity;
 
+import android.app.ActivityManager;
+import android.app.Application;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -14,6 +19,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.android.wificall.App;
 import com.android.wificall.R;
 import com.android.wificall.data.event.ActivityEvent;
 import com.android.wificall.router.NetworkManager;
@@ -25,6 +31,9 @@ import com.android.wificall.view.fragment.DeviceListFragment;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.lang.reflect.Method;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.OnClick;
@@ -47,6 +56,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     private WifiP2pManager mWifiManager;
     private WifiP2pManager.Channel mWifiChannel;
     private WifiDirectBroadcastReceiver mReceiver = null;
+    private WifiManager wifiManager;
 
     @Override
     protected void onStart() {
@@ -57,9 +67,9 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     public void onResume() {
         super.onResume();
-        if (!isGroupOwner) {
-            mCallButton.setEnabled(false);
-        }
+//        if (!isGroupOwner) {
+//            mCallButton.setEnabled(false);
+//        }
         mReceiver = new WifiDirectBroadcastReceiver(mWifiManager, mWifiChannel, this);
         registerReceiver(mReceiver, mIntentFilter);
         isVisible = true;
@@ -68,9 +78,9 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (!isGroupOwner) {
-            mCallButton.setEnabled(false);
-        }
+//        if (!isGroupOwner) {
+//            mCallButton.setEnabled(false);
+//        }
         initOwnerDialog();
         initRouterSettings();
 
@@ -81,7 +91,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     }
 
     private void initOwnerDialog() {
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle("Creating group")
                 .setMessage("Do you want to join the group as owner?")
@@ -90,17 +100,25 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
                     public void onClick(DialogInterface dialog, int which) {
                         isGroupOwner = true;
                         mReceiver.createGroup();
-                        mCallButton.setEnabled(true);
+//                        mCallButton.setEnabled(true);
+                        dialog.dismiss();
                     }
                 })
                 .setNegativeButton("No", null)
+                .setCancelable(true)
+                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialog) {
+                        dialog.dismiss();
+                    }
+                })
                 .show();
     }
 
     private void initRouterSettings() {
-        if (isGroupOwner) {
-            mCallButton.setEnabled(true);
-        }
+//        if (isGroupOwner) {
+//            mCallButton.setEnabled(true);
+//        }
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
@@ -108,6 +126,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
         mWifiManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mWifiChannel = mWifiManager.initialize(this, getMainLooper(), null);
+        ((App) getApplication()).setWifiManager(mWifiManager, mWifiChannel);
     }
 
     public void resetData() {
@@ -192,16 +211,16 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(ActivityEvent event) {
-        Toast.makeText(this, event.getMsg(), Toast.LENGTH_SHORT).show();
-        if (event.isJoin() && !isGroupOwner) {
-            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
-                mCallButton.setEnabled(true);
-            }
-        } else if (!event.isJoin() && !isGroupOwner) {
-            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
-                mCallButton.setEnabled(false);
-            }
-        }
+//        Toast.makeText(this, event.getMsg(), Toast.LENGTH_SHORT).show();
+//        if (event.isJoin() && !isGroupOwner) {
+//            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
+//                mCallButton.setEnabled(true);
+//            }
+//        } else if (!event.isJoin() && !isGroupOwner) {
+//            if (event.getMac().equals(NetworkManager.getSelf().getGroupOwnerMac()) || event.getMac().equals(WifiDirectBroadcastReceiver.MAC)) {
+//                mCallButton.setEnabled(false);
+//            }
+//        }
     }
 
     @Override
@@ -211,13 +230,13 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
             @Override
             public void onSuccess() {
                 // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
-                mCallButton.setEnabled(true);
+//                mCallButton.setEnabled(true);
             }
 
             @Override
             public void onFailure(int reason) {
-                mCallButton.setEnabled(false);
-                Toast.makeText(WifiDirectActivity.this, "Connect failed. Retry.", Toast.LENGTH_SHORT).show();
+//                mCallButton.setEnabled(false);
+                Toast.makeText(WifiDirectActivity.this, "Connect failed. Retry. Try Disable/Re-Enable Wi-Fi.", Toast.LENGTH_SHORT).show();
             }
         });
     }

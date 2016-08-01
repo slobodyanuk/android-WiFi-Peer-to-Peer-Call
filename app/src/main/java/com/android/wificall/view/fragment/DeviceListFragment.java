@@ -29,25 +29,10 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
     private static final String TAG = DeviceListFragment.class.getCanonicalName();
 
     private List<WifiP2pDevice> mPeers = new ArrayList<WifiP2pDevice>();
+    private List<WifiP2pDevice> mGroupOwners = new ArrayList<WifiP2pDevice>();
     private ProgressDialog mProgressDialog = null;
     private View mContentView = null;
     private WifiP2pDevice mDevice;
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        this.setListAdapter(new WifiPeerListAdapter(getActivity(), R.layout.row_devices, mPeers));
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        mContentView = inflater.inflate(R.layout.device_list, null);
-        return mContentView;
-    }
-
-    public WifiP2pDevice getDevice() {
-        return mDevice;
-    }
 
     public static String getDeviceStatus(int deviceStatus) {
         Log.d(TAG, "Peer status :" + deviceStatus);
@@ -65,6 +50,22 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
             default:
                 return "Unknown";
         }
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        this.setListAdapter(new WifiPeerListAdapter(getActivity(), R.layout.row_devices, mGroupOwners));
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        mContentView = inflater.inflate(R.layout.device_list, null);
+        return mContentView;
+    }
+
+    public WifiP2pDevice getDevice() {
+        return mDevice;
     }
 
     @Override
@@ -88,7 +89,19 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
             mProgressDialog.dismiss();
         }
         mPeers.clear();
+        mGroupOwners.clear();
         mPeers.addAll(peers.getDeviceList());
+
+        for (int peer = 0; peer < mPeers.size(); peer++) {
+            if (mPeers.get(peer).isGroupOwner()){
+                mGroupOwners.add(mPeers.get(peer));
+            }
+        }
+
+        if (mGroupOwners.size() == 0 && mPeers.size() != 0){
+            mGroupOwners.addAll(mPeers);
+        }
+
         ((WifiPeerListAdapter) getListAdapter()).notifyDataSetChanged();
         if (mPeers.size() == 0) {
             Log.d(TAG, "No devices found");
@@ -98,6 +111,7 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
 
     public void clearPeers() {
         mPeers.clear();
+        mGroupOwners.clear();
         ((WifiPeerListAdapter) getListAdapter()).notifyDataSetChanged();
     }
 

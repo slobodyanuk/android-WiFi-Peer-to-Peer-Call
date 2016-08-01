@@ -5,16 +5,18 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Process;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
 import com.android.wificall.R;
 import com.android.wificall.data.Client;
+import com.android.wificall.data.Packet;
 import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
+import com.android.wificall.router.Sender;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -48,6 +50,8 @@ public class CallActivity extends BaseActivity {
     Button mStartButton;
     @BindView(R.id.stop)
     Button mStopButton;
+    @BindView(R.id.update)
+    Button mUpdateButton;
 
     private DatagramSocket mSendingSocket = null;
     private DatagramSocket mReceivingSocket = null;
@@ -61,6 +65,7 @@ public class CallActivity extends BaseActivity {
     private AudioManager mAudioManager;
     private byte[] buffer;
     private boolean isReceiving = false;
+    private boolean stopThread = false;
 
     public static void addJoinedAddress(InetAddress address) {
         if (mAddresses != null) {
@@ -90,22 +95,26 @@ public class CallActivity extends BaseActivity {
         if (!WifiDirectActivity.isGroupOwner) {
             mStartButton.setVisibility(View.GONE);
             mStopButton.setVisibility(View.GONE);
+            mUpdateButton.setVisibility(View.VISIBLE);
+        } else {
+            mUpdateButton.setVisibility(View.GONE);
         }
 
         enableButtons(false);
+        initReceivingThread();
+    }
 
+    private void initReceivingThread() {
         mReceivingThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                for (Client c : NetworkManager.routingTable.values()) {
-                    if (c.getMac().equals(NetworkManager.getSelf().getMac())) {
-                        continue;
-                    }
+                Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
+                if (!WifiDirectActivity.isGroupOwner) {
                     initReceiver();
                 }
             }
         });
-
+        stopThread = false;
         mReceivingThread.start();
     }
 
@@ -121,19 +130,49 @@ public class CallActivity extends BaseActivity {
         stopRecording();
     }
 
+    @OnClick(R.id.update)
+    public void onUpdateClick() {
+        if (mAudioTrack != null) {
+            byte[] rtable = NetworkManager.serializeRoutingTable();
+            Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
+                    .getMac());
+            Sender.queuePacket(ack);
+
+            stopReceiving();
+            if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
+                if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                    try {
+                        mAudioTrack.flush();
+                        mAudioTrack.stop();
+                    } catch (IllegalStateException e) {
+                        e.printStackTrace();
+                    }
+                }
+                mAudioTrack.release();
+            }
+            initReceivingThread();
+        }
+    }
+
     public void initReceiver() {
-        mAudioTrack = new AudioTrack(AudioManager.STREAM_VOICE_CALL,
+
+        byte[] rtable = NetworkManager.serializeRoutingTable();
+        Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
+                .getMac());
+        Sender.queuePacket(ack);
+
+        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
                 RECORDER_RATE,
                 RECORDER_CHANNEL_OUT,
                 RECORDER_AUDIO_ENCODING,
                 RECEIVE_BUFFER_SIZE * 2,
                 AudioTrack.MODE_STREAM);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mAudioTrack.setVolume(0.9f);
-        } else {
-            mAudioTrack.setStereoVolume(0.9f, 0.9f);
-        }
+
+        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 100, 0);
+        mAudioManager.setParameters("noise_suppression=auto");
+
         mAudioTrack.play();
 
         buffer = new byte[RECEIVE_BUFFER_SIZE];
@@ -145,17 +184,19 @@ public class CallActivity extends BaseActivity {
         }
         final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         isReceiving = true;
-        while (isReceiving) {
+        while (isReceiving && !stopThread) {
             try {
                 mReceivingSocket.receive(packet);
                 mAudioTrack.write(packet.getData(), 0, packet.getLength());
-                mAudioTrack.flush();
+
             } catch (IOException e) {
                 Log.e("VR", "IOException");
                 isReceiving = false;
+                stopThread = true;
                 break;
             } catch (Exception e) {
                 e.printStackTrace();
+                stopThread = true;
                 isReceiving = false;
                 break;
             }
@@ -164,16 +205,25 @@ public class CallActivity extends BaseActivity {
             mReceivingSocket.disconnect();
             mReceivingSocket.close();
         }
-        mAudioTrack.stop();
-        mAudioTrack.release();
+
+        if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
+            if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+
+                try {
+                    mAudioTrack.flush();
+                    mAudioTrack.stop();
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            mAudioTrack.release();
+        }
     }
 
     private void startRecording() {
 
-        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        mAudioManager.setParameters("noise_suppression=auto");
-
-        mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION,
+        mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                 RECORDER_RATE, RECORDER_CHANNEL_IN,
                 RECORDER_AUDIO_ENCODING, RECORD_BUFFER_SIZE);
         mAudioRecord.startRecording();
@@ -197,9 +247,11 @@ public class CallActivity extends BaseActivity {
 
         mRecordingThread = new Thread(new Runnable() {
             public void run() {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
                 writeAudioData();
             }
         });
+        stopThread = false;
         mRecordingThread.start();
     }
 
@@ -207,7 +259,7 @@ public class CallActivity extends BaseActivity {
         byteData = new byte[RECORD_BUFFER_SIZE];
         DatagramPacket packet = new DatagramPacket(byteData, byteData.length);
 
-        while (isRecording) {
+        while (isRecording && !stopThread) {
             mAudioRecord.read(byteData, 0, byteData.length);
 
             for (int i = 0; i < mAddresses.size(); i++) {
@@ -216,7 +268,9 @@ public class CallActivity extends BaseActivity {
                     packet.setData(byteData);
                     packet.setLength(byteData.length);
                     packet.setPort(Configuration.RECEIVE_PORT);
-                    mSendingSocket.send(packet);
+                    if (mSendingSocket != null) {
+                        mSendingSocket.send(packet);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -241,11 +295,10 @@ public class CallActivity extends BaseActivity {
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void stopReceiving() {
         isReceiving = false;
         buffer = null;
+        stopThread = true;
 
         if (mReceivingThread != null) {
             mReceivingThread.interrupt();
@@ -256,6 +309,12 @@ public class CallActivity extends BaseActivity {
             mReceivingSocket.close();
             mReceivingSocket = null;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopReceiving();
         stopRecording();
     }
 
