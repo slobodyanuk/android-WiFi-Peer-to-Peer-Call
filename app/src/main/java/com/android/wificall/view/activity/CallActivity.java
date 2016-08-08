@@ -156,11 +156,6 @@ public class CallActivity extends BaseActivity {
 
     public void initReceiver() {
 
-        byte[] rtable = NetworkManager.serializeRoutingTable();
-        Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
-                .getMac());
-        Sender.queuePacket(ack);
-
         mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
                 RECORDER_RATE,
                 RECORDER_CHANNEL_OUT,
@@ -182,6 +177,12 @@ public class CallActivity extends BaseActivity {
         } catch (SocketException e) {
             e.printStackTrace();
         }
+
+        byte[] rtable = NetworkManager.serializeRoutingTable();
+        Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
+                .getMac());
+        Sender.queuePacket(ack);
+
         final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         isReceiving = true;
         while (isReceiving && !stopThread) {
@@ -216,7 +217,6 @@ public class CallActivity extends BaseActivity {
                     e.printStackTrace();
                 }
             }
-
             mAudioTrack.release();
         }
     }
