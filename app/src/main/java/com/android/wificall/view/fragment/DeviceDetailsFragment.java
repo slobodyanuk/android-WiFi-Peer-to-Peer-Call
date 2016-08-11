@@ -16,15 +16,10 @@ import android.widget.TextView;
 import com.android.wificall.R;
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
-import com.android.wificall.data.event.UpdateChatMessageEvent;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Sender;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.ButterKnife;
 import butterknife.Unbinder;

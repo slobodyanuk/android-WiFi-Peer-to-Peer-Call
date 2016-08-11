@@ -1,11 +1,14 @@
 package com.android.wificall.view.activity;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.os.Process;
 import android.util.Log;
 import android.view.View;
@@ -17,6 +20,8 @@ import com.android.wificall.data.Packet;
 import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Sender;
+import com.android.wificall.util.Globals;
+import com.android.wificall.util.PermissionsUtil;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -39,10 +44,13 @@ import static com.android.wificall.router.Configuration.RECORDER_RATE;
 
 public class CallActivity extends BaseActivity {
 
+    private static final int MIN_BUFFER_SIZE = 2048;
     private static final int RECORD_BUFFER_SIZE = AudioRecord.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_IN, RECORDER_AUDIO_ENCODING);
-    private static final int RECEIVE_BUFFER_SIZE = AudioTrack.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_OUT, RECORDER_AUDIO_ENCODING);
+    private static int RECEIVE_BUFFER_SIZE = AudioTrack.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_OUT, RECORDER_AUDIO_ENCODING);
 
     private static ArrayList<InetAddress> mAddresses = new ArrayList<>();
+
+    private boolean isGroupOwner;
 
     private static AudioTrack mAudioTrack;
 
@@ -61,8 +69,6 @@ public class CallActivity extends BaseActivity {
     private Thread mReceivingThread = null;
 
     private boolean isRecording = false;
-    private byte byteData[];
-    private AudioManager mAudioManager;
     private byte[] buffer;
     private boolean isReceiving = false;
     private boolean stopThread = false;
@@ -89,10 +95,43 @@ public class CallActivity extends BaseActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                && PermissionsUtil.needRecordAudioPermissions(this)) {
+            PermissionsUtil.requestRecordAudioPermission(this);
+            mStartButton.setVisibility(View.GONE);
+            mStopButton.setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean("group_owner", WifiDirectActivity.isGroupOwner);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        isGroupOwner = savedInstanceState.getBoolean("group_owner");
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!WifiDirectActivity.isGroupOwner) {
+        if (savedInstanceState != null) {
+            isGroupOwner = savedInstanceState.getBoolean("group_owner");
+        } else {
+            isGroupOwner = WifiDirectActivity.isGroupOwner;
+        }
+
+        if (RECEIVE_BUFFER_SIZE < MIN_BUFFER_SIZE){
+            RECEIVE_BUFFER_SIZE = MIN_BUFFER_SIZE;
+        }
+
+        if (!isGroupOwner) {
             mStartButton.setVisibility(View.GONE);
             mStopButton.setVisibility(View.GONE);
             mUpdateButton.setVisibility(View.VISIBLE);
@@ -109,7 +148,7 @@ public class CallActivity extends BaseActivity {
             @Override
             public void run() {
                 Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
-                if (!WifiDirectActivity.isGroupOwner) {
+                if (!isGroupOwner) {
                     initReceiver();
                 }
             }
@@ -163,9 +202,8 @@ public class CallActivity extends BaseActivity {
                 RECEIVE_BUFFER_SIZE * 2,
                 AudioTrack.MODE_STREAM);
 
-
-        mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 100, 0);
+        AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 65, 0);
         mAudioManager.setParameters("noise_suppression=auto");
 
         mAudioTrack.play();
@@ -178,10 +216,14 @@ public class CallActivity extends BaseActivity {
             e.printStackTrace();
         }
 
-        byte[] rtable = NetworkManager.serializeRoutingTable();
-        Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
-                .getMac());
-        Sender.queuePacket(ack);
+        try {
+            byte[] routingTable = NetworkManager.serializeRoutingTable();
+            Packet ack = new Packet(Packet.TYPE.HELLO_ACK, routingTable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
+                    .getMac());
+            Sender.queuePacket(ack);
+        } catch (Exception e) {
+            finish();
+        }
 
         final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         isReceiving = true;
@@ -256,7 +298,7 @@ public class CallActivity extends BaseActivity {
     }
 
     private void writeAudioData() {
-        byteData = new byte[RECORD_BUFFER_SIZE];
+        byte[] byteData = new byte[RECORD_BUFFER_SIZE];
         DatagramPacket packet = new DatagramPacket(byteData, byteData.length);
 
         while (isRecording && !stopThread) {
@@ -312,10 +354,36 @@ public class CallActivity extends BaseActivity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == Globals.REQUEST_RECORD_AUDIO) {
+            if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                mStartButton.setVisibility(View.VISIBLE);
+                mStopButton.setVisibility(View.VISIBLE);
+            } else {
+                finish();
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
-        stopReceiving();
-        stopRecording();
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+
+        boolean screenOn;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            screenOn = pm.isInteractive();
+        } else {
+            screenOn = pm.isScreenOn();
+        }
+
+        if (screenOn) {
+            stopReceiving();
+            stopRecording();
+            enableButtons(isRecording);
+        }
     }
 
     private void enableButtons(boolean isRecording) {
