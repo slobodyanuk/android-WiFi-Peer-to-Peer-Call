@@ -41,10 +41,6 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     private WifiP2pManager.Channel mWifiChannel;
     private WifiDirectBroadcastReceiver mReceiver = null;
 
-    public static void setOwner(boolean isGroupOwner) {
-        WifiDirectActivity.isGroupOwner = isGroupOwner;
-    }
-
     @Override
     public void onResume() {
         super.onResume();

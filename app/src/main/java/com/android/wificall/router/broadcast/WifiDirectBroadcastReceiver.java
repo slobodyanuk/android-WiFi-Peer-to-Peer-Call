@@ -8,6 +8,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Receiver;
 import com.android.wificall.router.Sender;
+import com.android.wificall.util.ConnectionInfoState;
 import com.android.wificall.view.activity.WifiDirectActivity;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
 import com.android.wificall.view.fragment.DeviceListFragment;
@@ -33,10 +35,13 @@ import java.util.List;
 /**
  * Created by slobodyanuk on 11.07.16.
  */
-public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
+public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements WifiP2pManager.ConnectionInfoListener {
 
     private static final String TAG = WifiDirectBroadcastReceiver.class.getCanonicalName();
 
+    public static boolean isGroupOwner = false;
+
+    private ConnectionInfoState mConnectionInfoState = ConnectionInfoState.UNAVAILABLE;
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
     private WifiDirectActivity mActivity;
@@ -89,6 +94,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
                 DeviceDetailsFragment fragment = (DeviceDetailsFragment) mActivity.getFragmentManager().findFragmentById(
                         R.id.frag_detail);
                 mManager.requestConnectionInfo(mChannel, fragment);
+                mManager.requestConnectionInfo(mChannel, this);
             } else {
                 // It's a disconnect
                 Log.d(TAG, "P2PACTION : WIFI_P2P_CONNECTION_CHANGED_ACTION -- DISCONNECT");
@@ -151,4 +157,9 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
+    @Override
+    public void onConnectionInfoAvailable(WifiP2pInfo info) {
+        mConnectionInfoState = ConnectionInfoState.AVAILABLE;
+        isGroupOwner = info.isGroupOwner;
+    }
 }
