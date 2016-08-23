@@ -24,19 +24,12 @@ public class Sender implements Runnable {
     public void run() {
         TcpSender packetSender = new TcpSender();
 
-        while (true) {
-            //Sleep to give up CPU cycles
-            while (ccl.isEmpty()) {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+        while (!Thread.currentThread().isInterrupted()) {
+            while (!ccl.isEmpty()) {
+                Packet p = ccl.remove();
+                String ip = NetworkManager.getIpForClient(p.getMac());
+                packetSender.sendPacket(ip, Configuration.RECEIVE_PORT, p);
             }
-
-            Packet p = ccl.remove();
-            String ip = NetworkManager.getIpForClient(p.getMac());
-            packetSender.sendPacket(ip, Configuration.RECEIVE_PORT, p);
 
         }
     }

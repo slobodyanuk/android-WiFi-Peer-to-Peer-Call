@@ -43,7 +43,6 @@ public class TcpReceiver implements Runnable {
                     if (n < 0)
                         break;
                     os.write(buf, 0, n);
-
                 }
 
                 byte trimmedBytes[] = os.toByteArray();

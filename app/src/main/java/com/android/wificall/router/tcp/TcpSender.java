@@ -38,6 +38,7 @@ public class TcpSender {
         try {
             os = tcpSocket.getOutputStream();
             os.write(data.serialize());
+            os.flush();
             os.close();
             tcpSocket.close();
         } catch (Exception e) {

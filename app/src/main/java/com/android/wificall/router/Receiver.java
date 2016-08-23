@@ -1,14 +1,9 @@
 package com.android.wificall.router;
 
-import android.app.usage.UsageEvents;
-import android.telecom.Call;
-
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.ActivityEvent;
-import com.android.wificall.data.event.CallingEndingEvent;
 import com.android.wificall.data.event.MessageEvent;
-import com.android.wificall.data.event.UpdateChatMessageEvent;
 import com.android.wificall.router.tcp.TcpReceiver;
 import com.android.wificall.view.activity.CallActivity;
 import com.android.wificall.view.activity.WifiDirectActivity;
@@ -35,9 +30,8 @@ public class Receiver implements Runnable {
     }
 
     public static void somebodyJoined(String smac, String ip) {
-        final String message;
         final String msg;
-        message = msg = smac + " has joined.";
+        msg = smac + " has joined.";
         final String name = smac;
         if (activity.isVisible()) {
             EventBus.getDefault().post(new ActivityEvent(msg, smac, true));
@@ -53,10 +47,9 @@ public class Receiver implements Runnable {
 
     }
 
-    public  static void somebodyLeft(String smac, String ip) {
-        final String message;
+    public static void somebodyLeft(String smac, String ip) {
         final String msg;
-        message = msg = smac + " has left.";
+        msg = smac + " has left.";
         final String name = smac;
         if (activity.isVisible()) {
             EventBus.getDefault().post(new ActivityEvent(msg, smac, false));
@@ -90,92 +83,87 @@ public class Receiver implements Runnable {
         new Thread(new TcpReceiver(Configuration.RECEIVE_PORT, packetQueue)).start();
         Packet p;
         while (true) {
-            while (packetQueue.isEmpty()) {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            p = packetQueue.remove();
+            while (!packetQueue.isEmpty()) {
+                p = packetQueue.remove();
 
-            if (p.getType().equals(Packet.TYPE.HELLO)) {
-                for (Client c : NetworkManager.routingTable.values()) {
-                    if (c.getMac().equals(NetworkManager.getSelf().getMac()) || c.getMac().equals(p.getSenderMac()))
-                        continue;
-                    Packet update = new Packet(Packet.TYPE.UPDATE, Packet.getMacAsBytes(p.getSenderMac()), c.getMac(),
-                            NetworkManager.getSelf().getMac());
-                    Sender.queuePacket(update);
-                }
+                if (p.getType().equals(Packet.TYPE.HELLO)) {
+                    for (Client c : NetworkManager.routingTable.values()) {
+                        if (c.getMac().equals(NetworkManager.getSelf().getMac()) || c.getMac().equals(p.getSenderMac()))
+                            continue;
+                        Packet update = new Packet(Packet.TYPE.UPDATE, Packet.getMacAsBytes(p.getSenderMac()), c.getMac(),
+                                NetworkManager.getSelf().getMac());
+                        Sender.queuePacket(update);
+                    }
 
-                NetworkManager.routingTable.put(p.getSenderMac(),
-                        new Client(p.getSenderMac(), p.getSenderIP(), p.getSenderMac(),
-                                NetworkManager.getSelf().getMac()));
+                    NetworkManager.routingTable.put(p.getSenderMac(),
+                            new Client(p.getSenderMac(), p.getSenderIP(), p.getSenderMac(),
+                                    NetworkManager.getSelf().getMac()));
 
-                byte[] rtable = NetworkManager.serializeRoutingTable();
+                    byte[] rtable = NetworkManager.serializeRoutingTable();
 
-                Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, p.getSenderMac(), NetworkManager.getSelf()
-                        .getMac());
-                Sender.queuePacket(ack);
-                somebodyJoined(p.getSenderMac(), p.getSenderIP());
-                updatePeerList();
-            } else {
-                // If you're the intended target for a non hello message
-                if (p.getMac().equals(NetworkManager.getSelf().getMac())) {
-                    //if we get a hello ack populate the table
-                    if (p.getType().equals(Packet.TYPE.HELLO_ACK)) {
-                        NetworkManager.deserializeRoutingTableAndAdd(p.getData());
-                        NetworkManager.getSelf().setGroupOwnerMac(p.getSenderMac());
-                        somebodyJoined(p.getSenderMac(), p.getSenderIP());
-                        updatePeerList();
-                    } else if (p.getType().equals(Packet.TYPE.UPDATE)) {
-                        //if it's an update, add to the table
-                        String emb_mac = Packet.getMacBytesAsString(p.getData(), 0);
-                        NetworkManager.routingTable.put(emb_mac,
-                                new Client(emb_mac, p.getSenderIP(), p.getMac(), NetworkManager
-                                        .getSelf().getMac()));
+                    Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, p.getSenderMac(), NetworkManager.getSelf()
+                            .getMac());
+                    Sender.queuePacket(ack);
+                    somebodyJoined(p.getSenderMac(), p.getSenderIP());
+                    updatePeerList();
+                } else {
+                    // If you're the intended target for a non hello message
+                    if (p.getMac().equals(NetworkManager.getSelf().getMac())) {
+                        //if we get a hello ack populate the table
+                        if (p.getType().equals(Packet.TYPE.HELLO_ACK)) {
+                            NetworkManager.deserializeRoutingTableAndAdd(p.getData());
+                            NetworkManager.getSelf().setGroupOwnerMac(p.getSenderMac());
+                            somebodyJoined(p.getSenderMac(), p.getSenderIP());
+                            updatePeerList();
+                        } else if (p.getType().equals(Packet.TYPE.UPDATE)) {
+                            //if it's an update, add to the table
+                            String emb_mac = Packet.getMacBytesAsString(p.getData(), 0);
+                            NetworkManager.routingTable.put(emb_mac,
+                                    new Client(emb_mac, p.getSenderIP(), p.getMac(), NetworkManager
+                                            .getSelf().getMac()));
 
-                        final String message = emb_mac + " joined the conversation";
-                        final String name = p.getSenderMac();
-                        if (activity.isVisible()) {
-                            EventBus.getDefault().post(new ActivityEvent(message));
-                        } else {
-                            EventBus.getDefault().post(new MessageEvent(name, message));
-                        }
+                            final String message = emb_mac + " joined the conversation";
+                            final String name = p.getSenderMac();
+                            if (activity.isVisible()) {
+                                EventBus.getDefault().post(new ActivityEvent(message));
+                            } else {
+                                EventBus.getDefault().post(new MessageEvent(name, message));
+                            }
 
-                        updatePeerList();
+                            updatePeerList();
 
-                    } else if (p.getType().equals(Packet.TYPE.MESSAGE)) {
-                        //If it's a message display the message and update the table if they're not there
-                        // for whatever reason
-                        final String message = p.getSenderMac() + " says:\n" + new String(p.getData());
-                        final String msg = new String(p.getData());
-                        final String name = p.getSenderMac();
+                        } else if (p.getType().equals(Packet.TYPE.MESSAGE)) {
+                            //If it's a message display the message and update the table if they're not there
+                            // for whatever reason
+                            final String message = p.getSenderMac() + " says:\n" + new String(p.getData());
+                            final String msg = new String(p.getData());
+                            final String name = p.getSenderMac();
 
-                        if (!NetworkManager.routingTable.contains(p.getSenderMac())) {
+                            if (!NetworkManager.routingTable.contains(p.getSenderMac())) {
                             /*
                              * Update your routing table if for some reason this
-							 * guy isn't in it
+							 * isn't in it
 							 */
-                            NetworkManager.routingTable.put(p.getSenderMac(),
-                                    new Client(p.getSenderMac(), p.getSenderIP(), p.getSenderMac(),
-                                            NetworkManager.getSelf().getGroupOwnerMac()));
-                        }
+                                NetworkManager.routingTable.put(p.getSenderMac(),
+                                        new Client(p.getSenderMac(), p.getSenderIP(), p.getSenderMac(),
+                                                NetworkManager.getSelf().getGroupOwnerMac()));
+                            }
 
-                        if (activity.isVisible()) {
-                            EventBus.getDefault().post(new ActivityEvent(message));
+                            if (activity.isVisible()) {
+                                EventBus.getDefault().post(new ActivityEvent(message));
+                            } else {
+                                EventBus.getDefault().post(new MessageEvent(name, msg));
+                            }
+                            updatePeerList();
                         } else {
-                            EventBus.getDefault().post(new MessageEvent(name, msg));
-                        }
-                        updatePeerList();
-                    }else{
-                        // otherwise forward it if you're not the recipient
-                        int ttl = p.getTtl();
-                        // Have a ttl so that they don't bounce around forever
-                        ttl--;
-                        if (ttl > 0) {
-                            Sender.queuePacket(p);
-                            p.setTtl(ttl);
+                            // otherwise forward it if you're not the recipient
+                            int ttl = p.getTtl();
+                            // Have a ttl so that they don't bounce around forever
+                            ttl--;
+                            if (ttl > 0) {
+                                Sender.queuePacket(p);
+                                p.setTtl(ttl);
+                            }
                         }
                     }
                 }

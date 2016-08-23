@@ -45,7 +45,7 @@ import static com.android.wificall.router.Configuration.RECORDER_RATE;
 public class CallActivity extends BaseActivity {
 
     private static final int MIN_BUFFER_SIZE = 2048;
-    private static final int RECORD_BUFFER_SIZE = AudioRecord.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_IN, RECORDER_AUDIO_ENCODING);
+    private static int RECORD_BUFFER_SIZE = AudioRecord.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_IN, RECORDER_AUDIO_ENCODING);
     private static int RECEIVE_BUFFER_SIZE = AudioTrack.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_OUT, RECORDER_AUDIO_ENCODING);
 
     private static ArrayList<InetAddress> mAddresses = new ArrayList<>();
@@ -127,9 +127,11 @@ public class CallActivity extends BaseActivity {
             isGroupOwner = WifiDirectActivity.isGroupOwner;
         }
 
-        if (RECEIVE_BUFFER_SIZE < MIN_BUFFER_SIZE){
+        if (RECEIVE_BUFFER_SIZE < MIN_BUFFER_SIZE) {
             RECEIVE_BUFFER_SIZE = MIN_BUFFER_SIZE;
         }
+
+        Log.e("record", String.valueOf(RECORD_BUFFER_SIZE));
 
         if (!isGroupOwner) {
             mStartButton.setVisibility(View.GONE);
@@ -203,7 +205,7 @@ public class CallActivity extends BaseActivity {
                 AudioTrack.MODE_STREAM);
 
         AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 65, 0);
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 70, 0);
         mAudioManager.setParameters("noise_suppression=auto");
 
         mAudioTrack.play();
@@ -231,7 +233,7 @@ public class CallActivity extends BaseActivity {
             try {
                 mReceivingSocket.receive(packet);
                 mAudioTrack.write(packet.getData(), 0, packet.getLength());
-
+                mAudioTrack.flush();
             } catch (IOException e) {
                 Log.e("VR", "IOException");
                 isReceiving = false;
@@ -266,8 +268,11 @@ public class CallActivity extends BaseActivity {
     private void startRecording() {
 
         mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                RECORDER_RATE, RECORDER_CHANNEL_IN,
-                RECORDER_AUDIO_ENCODING, RECORD_BUFFER_SIZE);
+                RECORDER_RATE,
+                RECORDER_CHANNEL_IN,
+                RECORDER_AUDIO_ENCODING,
+                RECORD_BUFFER_SIZE);
+
         mAudioRecord.startRecording();
         isRecording = true;
 
@@ -303,7 +308,7 @@ public class CallActivity extends BaseActivity {
 
         while (isRecording && !stopThread) {
             mAudioRecord.read(byteData, 0, byteData.length);
-
+            mAudioTrack.flush();
             for (int i = 0; i < mAddresses.size(); i++) {
                 try {
                     packet.setAddress(mAddresses.get(i));
@@ -316,7 +321,6 @@ public class CallActivity extends BaseActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
         }
     }
@@ -390,6 +394,7 @@ public class CallActivity extends BaseActivity {
         enableButton(mStartButton, !isRecording);
         enableButton(mStopButton, isRecording);
     }
+
 
     private void enableButton(Button button, boolean isEnable) {
         button.setEnabled(isEnable);
