@@ -4,17 +4,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.NetworkInfo;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.android.wificall.R;
 import com.android.wificall.data.Client;
+import com.android.wificall.data.event.GroupOwnerEvent;
 import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Receiver;
@@ -24,13 +22,7 @@ import com.android.wificall.view.activity.WifiDirectActivity;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
 import com.android.wificall.view.fragment.DeviceListFragment;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteOrder;
-import java.util.List;
+import org.greenrobot.eventbus.EventBus;
 
 /**
  * Created by slobodyanuk on 11.07.16.
@@ -39,7 +31,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
 
     private static final String TAG = WifiDirectBroadcastReceiver.class.getCanonicalName();
 
-    public static boolean isGroupOwner = false;
+    public static boolean groupOwner = false;
 
     private ConnectionInfoState mConnectionInfoState = ConnectionInfoState.UNAVAILABLE;
     private WifiP2pManager mManager;
@@ -61,11 +53,11 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
 
             // UI update to indicate wifi p2p status.
-           state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
+            state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             if (state != WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
                 mActivity.setWifiP2pEnabled(false);
                 mActivity.resetData();
-            }else{
+            } else {
                 mActivity.setWifiP2pEnabled(true);
             }
 
@@ -113,7 +105,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                     ((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)).deviceName,
                     ((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)).deviceAddress));
 
-                //Launch receiver and sender once connected to someone
+            //Launch receiver and sender once connected to someone
             if (!Receiver.running) {
                 Receiver r = new Receiver(this.mActivity);
                 new Thread(r).start();
@@ -160,6 +152,12 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
         mConnectionInfoState = ConnectionInfoState.AVAILABLE;
-        isGroupOwner = info.isGroupOwner;
+        groupOwner = info.isGroupOwner;
+        EventBus.getDefault().post(new GroupOwnerEvent(groupOwner));
+        Log.e(TAG, "onConnectionInfoAvailable: isGroupOwner : " + groupOwner);
+    }
+
+    public boolean isGroupOwner(){
+        return groupOwner;
     }
 }

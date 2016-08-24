@@ -62,7 +62,6 @@ public class Receiver implements Runnable {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-
     }
 
     public static void updatePeerList() {
@@ -154,6 +153,10 @@ public class Receiver implements Runnable {
                             } else {
                                 EventBus.getDefault().post(new MessageEvent(name, msg));
                             }
+                            updatePeerList();
+                        } else if (p.getType().equals(Packet.TYPE.BYE)) {
+                            NetworkManager.routingTable.remove(p.getSenderMac());
+                            somebodyLeft(p.getSenderMac(), p.getSenderIP());
                             updatePeerList();
                         } else {
                             // otherwise forward it if you're not the recipient

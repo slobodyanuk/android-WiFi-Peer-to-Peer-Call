@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -16,6 +17,9 @@ import android.widget.Toast;
 
 import com.android.wificall.App;
 import com.android.wificall.R;
+import com.android.wificall.data.Packet;
+import com.android.wificall.router.NetworkManager;
+import com.android.wificall.router.Sender;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
@@ -209,19 +213,45 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
                 R.id.frag_detail);
         fragment.resetViews();
-        mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
+//        mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
+//
+//            @Override
+//            public void onFailure(int reasonCode) {
+//                Log.d(TAG, "Disconnect failed. Reason :" + reasonCode);
+//
+//            }
+//
+//            @Override
+//            public void onSuccess() {
+//                fragment.getView().setVisibility(View.GONE);
+//            }
+//        });
+        if (mWifiManager != null && mWifiChannel != null) {
+            mWifiManager.requestGroupInfo(mWifiChannel, new WifiP2pManager.GroupInfoListener() {
+                @Override
+                public void onGroupInfoAvailable(final WifiP2pGroup group) {
+                    if (group != null && mWifiManager != null && mWifiChannel != null) {
+                        if (!group.isGroupOwner()) {
+                            mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
 
-            @Override
-            public void onFailure(int reasonCode) {
-                Log.d(TAG, "Disconnect failed. Reason :" + reasonCode);
+                                @Override
+                                public void onSuccess() {
+                                    Log.d(TAG, "removeGroup onSuccess -");
+                                    fragment.getView().setVisibility(View.GONE);
+                                }
 
-            }
-
-            @Override
-            public void onSuccess() {
-                fragment.getView().setVisibility(View.GONE);
-            }
-        });
+                                @Override
+                                public void onFailure(int reason) {
+                                    Log.d(TAG, "removeGroup onFailure -" + reason);
+                                }
+                            });
+                        }else{
+                            fragment.resetViews();
+                        }
+                    }
+                }
+            });
+        }
     }
 
     @Override

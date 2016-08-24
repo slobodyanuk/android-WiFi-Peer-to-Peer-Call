@@ -8,11 +8,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
 import com.android.wificall.R;
 import com.android.wificall.data.Packet;
+import com.android.wificall.data.event.GroupOwnerEvent;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Sender;
 import com.android.wificall.router.audio.AudioReader;
@@ -20,6 +22,9 @@ import com.android.wificall.router.audio.AudioRecorder;
 import com.android.wificall.util.Globals;
 import com.android.wificall.util.PermissionsUtil;
 import com.android.wificall.util.TimeConstants;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
 import java.net.InetAddress;
 
@@ -63,9 +68,9 @@ public class CallActivity extends BaseActivity {
     private Runnable mUpdateRunnable = new Runnable() {
         @Override
         public void run() {
-                if (isUpdating) {
-                    onConnectionUpdate();
-                    mHandler.postDelayed(mUpdateRunnable, TimeConstants.MINUTE);
+            if (isUpdating && !isGroupOwner) {
+                onConnectionUpdate();
+                mHandler.postDelayed(mUpdateRunnable, TimeConstants.MINUTE);
             }
         }
     };
@@ -80,6 +85,12 @@ public class CallActivity extends BaseActivity {
         if (mAudioRecorder != null) {
             mAudioRecorder.removeAddress(address);
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
     }
 
     @Override
@@ -132,6 +143,13 @@ public class CallActivity extends BaseActivity {
 
         enableButtons(false);
         initReceivingThread();
+    }
+
+    @Subscribe
+    public void onEvent(GroupOwnerEvent event) {
+        isGroupOwner = event.isGroupOwner();
+        Log.e("TAG", "onEvent: isGroupOwner : " + isGroupOwner);
+
     }
 
     private void initReceivingThread() {
@@ -276,5 +294,11 @@ public class CallActivity extends BaseActivity {
 
     public void onConnectionUpdate() {
         onUpdateClick();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
     }
 }

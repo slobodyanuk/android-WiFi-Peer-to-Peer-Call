@@ -4,19 +4,15 @@ import android.app.Activity;
 import android.app.Application;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.android.wificall.view.activity.WifiDirectActivity;
-import com.crashlytics.android.Crashlytics;
 
 import java.lang.reflect.Method;
-
-import io.fabric.sdk.android.Fabric;
 
 /**
  * Created by matviy on 28.07.16.
  */
-public class App extends Application implements Application.ActivityLifecycleCallbacks{
+public class App extends Application implements Application.ActivityLifecycleCallbacks {
 
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
@@ -24,11 +20,11 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @Override
     public void onCreate() {
         super.onCreate();
-       // Fabric.with(this, new Crashlytics());
+        // Fabric.with(this, new Crashlytics());
         registerActivityLifecycleCallbacks(this);
     }
 
-    public void setWifiManager(WifiP2pManager manager, WifiP2pManager.Channel channel){
+    public void setWifiManager(WifiP2pManager manager, WifiP2pManager.Channel channel) {
         this.mManager = manager;
         this.mChannel = channel;
     }
@@ -65,14 +61,14 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     @Override
     public void onActivityDestroyed(Activity activity) {
-        if (activity instanceof WifiDirectActivity){
-            if (mChannel != null && mManager != null){
+        if (activity instanceof WifiDirectActivity) {
+            if (mChannel != null && mManager != null) {
                 deletePersistentGroups();
             }
         }
     }
 
-    private void deletePersistentGroups(){
+    private void deletePersistentGroups() {
         try {
             Method[] methods = WifiP2pManager.class.getMethods();
             for (int i = 0; i < methods.length; i++) {
@@ -83,7 +79,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     }
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

@@ -60,6 +60,7 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
             public void onClick(View v) {
                 WifiP2pConfig config = new WifiP2pConfig();
                 config.deviceAddress = mDevice.deviceAddress;
+                config.groupOwnerIntent = 0;
                 config.wps.setup = WpsInfo.PBC;
                 if (mProgressDialog != null && mProgressDialog.isShowing()) {
                     mProgressDialog.dismiss();
@@ -73,6 +74,7 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
         ButterKnife.findById(mContentView, R.id.btn_disconnect).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Sender.queuePacket(new Packet(Packet.TYPE.BYE, new byte[0], NetworkManager.getSelf().getGroupOwnerMac(),  NetworkManager.getSelf().getMac()));
                 ((DeviceActionListener) getActivity()).disconnect();
             }
         });
@@ -97,6 +99,16 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
 
     public void showDetails(WifiP2pDevice device) {
         this.mDevice = device;
+        this.getView().setVisibility(View.VISIBLE);
+        TextView view = (TextView) mContentView.findViewById(R.id.device_address);
+        String s = "Currently in the network chatting: \n";
+        for (Client c : NetworkManager.routingTable.values()) {
+            s += c.getMac() + "\n";
+        }
+        view.setText(s);
+    }
+
+    public void showDetails() {
         this.getView().setVisibility(View.VISIBLE);
         TextView view = (TextView) mContentView.findViewById(R.id.device_address);
         String s = "Currently in the network chatting: \n";
