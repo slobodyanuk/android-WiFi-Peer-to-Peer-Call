@@ -2,71 +2,79 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="fill_parent"
-             android:background="@android:color/white"
+    android:background="@android:color/white"
     android:orientation="horizontal"
-    android:visibility="gone" >
+    android:visibility="gone">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical" >
+        android:layout_height="match_parent">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" >
+            android:layout_height="match_parent">
 
-            <Button
-                android:id="@+id/btn_connect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/connect_peer_button" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btn_disconnect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/disconnect_peer_button" />
-        </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/device_address"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+                    <Button
+                        android:id="@+id/btn_connect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/connect_peer_button" />
 
-        <TextView
-            android:id="@+id/device_info"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+                    <Button
+                        android:id="@+id/btn_disconnect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/disconnect_peer_button" />
+                </LinearLayout>
 
-        <TextView
-            android:id="@+id/group_owner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/device_address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
-        <TextView
-            android:id="@+id/group_ip"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
+                <TextView
+                    android:id="@+id/device_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
-    <LinearLayout
-        android:id="@+id/status_bar"
-        android:layout_width="match_parent"
-        android:layout_height="37dp"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="3dp"
-        android:background="@android:color/background_light"
-        android:orientation="vertical" >
+                <TextView
+                    android:id="@+id/group_owner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
 
-        <TextView
-            android:id="@+id/status_text"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:layout_margin="5dp"
-            android:textColor="@android:color/white" >
-        </TextView>
-    </LinearLayout>
+                <TextView
+                    android:id="@+id/group_ip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/status_bar"
+                android:layout_width="match_parent"
+                android:layout_height="37dp"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="3dp"
+                android:background="@android:color/background_light"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:layout_margin="5dp"
+                    android:textColor="@android:color/white"></TextView>
+            </LinearLayout>
+        </FrameLayout>
+    </ScrollView>
 </FrameLayout>

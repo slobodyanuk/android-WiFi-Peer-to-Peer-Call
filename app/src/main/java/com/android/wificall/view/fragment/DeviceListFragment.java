@@ -93,12 +93,12 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
         mPeers.addAll(peers.getDeviceList());
 
         for (int peer = 0; peer < mPeers.size(); peer++) {
-            if (mPeers.get(peer).isGroupOwner()){
+            if (mPeers.get(peer).isGroupOwner()) {
                 mGroupOwners.add(mPeers.get(peer));
             }
         }
 
-        if (mGroupOwners.size() == 0 && mPeers.size() != 0){
+        if (mGroupOwners.size() == 0 && mPeers.size() != 0) {
             mGroupOwners.addAll(mPeers);
         }
 
@@ -116,6 +116,7 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
     }
 
     public void onInitiateDiscovery() {
+
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
             mProgressDialog.dismiss();
         }
@@ -128,4 +129,11 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
                     }
                 });
     }
+
+    public void dismissDialog() {
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+        }
+    }
+
 }

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:background="@android:color/white"
@@ -8,36 +7,46 @@
 
     <fragment
         android:id="@+id/frag_list"
+        class="com.android.wificall.view.fragment.DeviceListFragment"
         android:layout_width="match_parent"
-        android:layout_height="164dp"
-        class="com.android.wificall.view.fragment.DeviceListFragment"/>
+        android:layout_height="164dp" />
 
     <fragment
         android:id="@+id/frag_detail"
+        class="com.android.wificall.view.fragment.DeviceDetailsFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.95"
-        class="com.android.wificall.view.fragment.DeviceDetailsFragment"/>
+        android:layout_weight="0.95" />
 
-    <Button
-        android:id="@+id/btn_discover"
-        style="?android:attr/buttonStyleSmall"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/discover_peers_button"/>
+        android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/btn_switch"
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/group_chat"/>
+        <Button
+            android:id="@+id/btn_discover"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="5dp"
+            android:text="@string/discover_peers_button" />
 
-    <Button
-        android:id="@+id/btn_call"
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/group_call"/>
+        <!--<Button-->
+        <!--android:id="@+id/btn_switch"-->
+        <!--style="?android:attr/buttonStyleSmall"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="@string/group_chat"/>-->
 
+        <Button
+            android:id="@+id/btn_call"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_marginRight="5dp"
+
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/group_call" />
+    </LinearLayout>
 </LinearLayout>

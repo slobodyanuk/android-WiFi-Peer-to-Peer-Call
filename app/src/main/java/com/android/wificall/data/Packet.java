@@ -6,8 +6,8 @@ package com.android.wificall.data;
 public class Packet {
 
     public enum TYPE {
-        HELLO, HELLO_ACK, BYE, MESSAGE, UPDATE, VOICE
-    };
+        HELLO, HELLO_ACK, BYE, MESSAGE, UPDATE, RECORDING_AVAILABLE
+    }
 
     private byte[] data;
     private Packet.TYPE type;

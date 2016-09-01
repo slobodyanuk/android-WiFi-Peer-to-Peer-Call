@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -42,6 +43,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     private boolean retryChannel = false;
 
     private WifiP2pManager mWifiManager;
+    private WifiManager mWifiNetworkManager;
     private WifiP2pManager.Channel mWifiChannel;
     private WifiDirectBroadcastReceiver mReceiver = null;
 
@@ -109,6 +111,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         mWifiManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mWifiNetworkManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiChannel = mWifiManager.initialize(this, getMainLooper(), null);
         ((App) getApplication()).setWifiManager(mWifiManager, mWifiChannel);
     }
@@ -144,15 +147,16 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
             public void onFailure(int reasonCode) {
                 Toast.makeText(WifiDirectActivity.this, "Discovery Failed : " + reasonCode, Toast.LENGTH_SHORT)
                         .show();
+                fragment.dismissDialog();
             }
         });
     }
 
-    @OnClick(R.id.btn_switch)
-    public void onChatClick() {
-        Intent i = new Intent(getApplicationContext(), MessageActivity.class);
-        startActivity(i);
-    }
+//    @OnClick(R.id.btn_switch)
+//    public void onChatClick() {
+//        Intent i = new Intent(getApplicationContext(), MessageActivity.class);
+//        startActivity(i);
+//    }
 
     @OnClick(R.id.btn_call)
     public void onCallClick() {
@@ -187,6 +191,8 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
                     public void onFailure(int reasonCode) {
                         Toast.makeText(WifiDirectActivity.this,
                                 "Connect abort request failed. Reason Code: " + reasonCode, Toast.LENGTH_SHORT).show();
+                        enableWifi();
+                        fragment.dismissDialog();
                     }
                 });
             }
@@ -196,7 +202,6 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     public void connect(WifiP2pConfig config) {
         mWifiManager.connect(mWifiChannel, config, new WifiP2pManager.ActionListener() {
-
             @Override
             public void onSuccess() {
             }
@@ -204,6 +209,10 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
             @Override
             public void onFailure(int reason) {
                 Toast.makeText(WifiDirectActivity.this, "Connect failed. Retry. Try Disable/Re-Enable Wi-Fi.", Toast.LENGTH_SHORT).show();
+                final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
+                        R.id.frag_detail);
+                fragment.dismissDialog();
+                enableWifi();
             }
         });
     }
@@ -213,19 +222,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
                 R.id.frag_detail);
         fragment.resetViews();
-//        mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
-//
-//            @Override
-//            public void onFailure(int reasonCode) {
-//                Log.d(TAG, "Disconnect failed. Reason :" + reasonCode);
-//
-//            }
-//
-//            @Override
-//            public void onSuccess() {
-//                fragment.getView().setVisibility(View.GONE);
-//            }
-//        });
+
         if (mWifiManager != null && mWifiChannel != null) {
             mWifiManager.requestGroupInfo(mWifiChannel, new WifiP2pManager.GroupInfoListener() {
                 @Override
@@ -281,5 +278,12 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
     public boolean isVisible() {
         return isVisible;
+    }
+
+    private void enableWifi(){
+        if (mWifiNetworkManager != null) {
+            mWifiNetworkManager.setWifiEnabled(false);
+            mWifiNetworkManager.setWifiEnabled(true);
+        }
     }
 }

@@ -11,6 +11,7 @@ import android.widget.TextView;
 import com.android.wificall.R;
 import com.android.wificall.view.fragment.DeviceListFragment;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**

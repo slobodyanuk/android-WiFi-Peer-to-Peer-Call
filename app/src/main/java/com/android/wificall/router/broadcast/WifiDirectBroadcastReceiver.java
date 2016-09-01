@@ -118,9 +118,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 public void onGroupInfoAvailable(WifiP2pGroup group) {
                     if (group != null) {
                         String passphrase = group.getPassphrase();
-
                         String ssid = group.getNetworkName();
-
                         Log.d(TAG, "GROUP INFO AVALABLE");
                         Log.d(TAG, " SSID : " + ssid + "\n Passphrase : " + passphrase);
                     }
@@ -157,7 +155,4 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
         Log.e(TAG, "onConnectionInfoAvailable: isGroupOwner : " + groupOwner);
     }
 
-    public boolean isGroupOwner(){
-        return groupOwner;
-    }
 }

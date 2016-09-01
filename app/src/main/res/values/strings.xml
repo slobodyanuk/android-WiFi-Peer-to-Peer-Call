@@ -2,14 +2,14 @@
     <string name="app_name">Wi-Fi Call</string>
 
     <string name="enable_p2p_button">P2P On/Off</string>
-    <string name="discover_peers_button">Discover</string>
+    <string name="discover_peers_button">Find a group</string>
     <string name="connect_peer_button">Connect</string>
     <string name="disconnect_peer_button">Disconnect</string>
 
     <string name="yes">yes</string>
     <string name="no">no</string>
     <string name="empty"></string>
-    <string name="empty_message">No devices found. Turn on P2P and perform discovery</string>
+    <string name="empty_message">No devices found. Turn on Wi-Fi and perform discovery</string>
 
     <string name="label_me">ME</string>
     <string name="label_peers">PEERS</string>
@@ -23,5 +23,7 @@
 
     <string name="group_chat">Group Chat</string>
     <string name="group_call">Group Call</string>
+    <string name="record_msg">Connection is available. Speak now.</string>
+    <string name="receive_msg">Connection is available. If you have a some problem with the connection, press this button or connect with the group again.</string>
 
 </resources>

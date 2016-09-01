@@ -11,6 +11,7 @@ import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.android.wificall.R;
 import com.android.wificall.data.Packet;
@@ -42,14 +43,15 @@ public class CallActivity extends BaseActivity {
     private static int RECORD_BUFFER_SIZE = AudioRecord.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_IN, RECORDER_AUDIO_ENCODING);
     private static int RECEIVE_BUFFER_SIZE = AudioTrack.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_OUT, RECORDER_AUDIO_ENCODING);
 
-
     private boolean isGroupOwner;
 
+//    @BindView(R.id.start)
+//    Button mStartButton;
+//    @BindView(R.id.stop)
+//    Button mStopButton;
 
-    @BindView(R.id.start)
-    Button mStartButton;
-    @BindView(R.id.stop)
-    Button mStopButton;
+    @BindView(R.id.call_msg)
+    TextView mCallMessage;
     @BindView(R.id.update)
     Button mUpdateButton;
 
@@ -70,7 +72,7 @@ public class CallActivity extends BaseActivity {
         public void run() {
             if (isUpdating && !isGroupOwner) {
                 onConnectionUpdate();
-                mHandler.postDelayed(mUpdateRunnable, TimeConstants.MINUTE);
+                mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
             }
         }
     };
@@ -99,8 +101,9 @@ public class CallActivity extends BaseActivity {
         if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && PermissionsUtil.needRecordAudioPermissions(this)) {
             PermissionsUtil.requestRecordAudioPermission(this);
-            mStartButton.setVisibility(View.GONE);
-            mStopButton.setVisibility(View.GONE);
+//            mStartButton.setVisibility(View.GONE);
+//            mStopButton.setVisibility(View.GONE);
+            onStartClick();
         }
     }
 
@@ -134,10 +137,13 @@ public class CallActivity extends BaseActivity {
         }
 
         if (!isGroupOwner) {
-            mStartButton.setVisibility(View.GONE);
-            mStopButton.setVisibility(View.GONE);
+//            mStartButton.setVisibility(View.GONE);
+//            mStopButton.setVisibility(View.GONE);
+            mCallMessage.setText(getString(R.string.receive_msg));
             mUpdateButton.setVisibility(View.VISIBLE);
         } else {
+            mCallMessage.setText(getString(R.string.record_msg));
+            onStartClick();
             mUpdateButton.setVisibility(View.GONE);
         }
 
@@ -161,13 +167,13 @@ public class CallActivity extends BaseActivity {
         }
     }
 
-    @OnClick(R.id.start)
+    // @OnClick(R.id.start)
     public void onStartClick() {
         enableButtons(true);
         startRecording();
     }
 
-    @OnClick(R.id.stop)
+    //@OnClick(R.id.stop)
     public void onStopClick() {
         enableButtons(false);
         stopRecording();
@@ -241,8 +247,9 @@ public class CallActivity extends BaseActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == Globals.REQUEST_RECORD_AUDIO) {
             if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                mStartButton.setVisibility(View.VISIBLE);
-                mStopButton.setVisibility(View.VISIBLE);
+//                mStartButton.setVisibility(View.VISIBLE);
+//                mStopButton.setVisibility(View.VISIBLE);
+                onStartClick();
             } else {
                 finish();
             }
@@ -272,8 +279,8 @@ public class CallActivity extends BaseActivity {
     }
 
     private void enableButtons(boolean isRecording) {
-        enableButton(mStartButton, !isRecording);
-        enableButton(mStopButton, isRecording);
+//        enableButton(mStartButton, !isRecording);
+//        enableButton(mStopButton, isRecording);
     }
 
 

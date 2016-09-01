@@ -105,16 +105,7 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
         for (Client c : NetworkManager.routingTable.values()) {
             s += c.getMac() + "\n";
         }
-        view.setText(s);
-    }
 
-    public void showDetails() {
-        this.getView().setVisibility(View.VISIBLE);
-        TextView view = (TextView) mContentView.findViewById(R.id.device_address);
-        String s = "Currently in the network chatting: \n";
-        for (Client c : NetworkManager.routingTable.values()) {
-            s += c.getMac() + "\n";
-        }
         view.setText(s);
     }
 
@@ -129,6 +120,12 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
         view = ButterKnife.findById(mContentView, R.id.status_text);
         view.setText(R.string.empty);
         this.getView().setVisibility(View.GONE);
+    }
+
+    public void dismissDialog() {
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+        }
     }
 
     @Override
