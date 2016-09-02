@@ -7,7 +7,6 @@ import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -18,9 +17,6 @@ import android.widget.Toast;
 
 import com.android.wificall.App;
 import com.android.wificall.R;
-import com.android.wificall.data.Packet;
-import com.android.wificall.router.NetworkManager;
-import com.android.wificall.router.Sender;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
@@ -85,22 +81,14 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle("Creating group")
                 .setMessage("Do you want to join the group as owner?")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        isGroupOwner = true;
-                        mReceiver.createGroup();
-                        dialog.dismiss();
-                    }
+                .setPositiveButton("Yes", (dialog1, which) -> {
+                    isGroupOwner = true;
+                    mReceiver.createGroup();
+                    dialog1.dismiss();
                 })
                 .setNegativeButton("No", null)
                 .setCancelable(true)
-                .setOnCancelListener(new DialogInterface.OnCancelListener() {
-                    @Override
-                    public void onCancel(DialogInterface dialog) {
-                        dialog.dismiss();
-                    }
-                })
+                .setOnCancelListener(DialogInterface::dismiss)
                 .show();
     }
 
@@ -224,27 +212,23 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         fragment.resetViews();
 
         if (mWifiManager != null && mWifiChannel != null) {
-            mWifiManager.requestGroupInfo(mWifiChannel, new WifiP2pManager.GroupInfoListener() {
-                @Override
-                public void onGroupInfoAvailable(final WifiP2pGroup group) {
-                    if (group != null && mWifiManager != null && mWifiChannel != null) {
-                        if (!group.isGroupOwner()) {
-                            mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
+            mWifiManager.requestGroupInfo(mWifiChannel, group -> {
+                if (group != null && mWifiManager != null && mWifiChannel != null) {
+                    if (!group.isGroupOwner()) {
+                        mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "removeGroup onSuccess -");
+                                fragment.getView().setVisibility(View.GONE);
+                            }
 
-                                @Override
-                                public void onSuccess() {
-                                    Log.d(TAG, "removeGroup onSuccess -");
-                                    fragment.getView().setVisibility(View.GONE);
-                                }
-
-                                @Override
-                                public void onFailure(int reason) {
-                                    Log.d(TAG, "removeGroup onFailure -" + reason);
-                                }
-                            });
-                        }else{
-                            fragment.resetViews();
-                        }
+                            @Override
+                            public void onFailure(int reason) {
+                                Log.d(TAG, "removeGroup onFailure -" + reason);
+                            }
+                        });
+                    } else {
+                        fragment.resetViews();
                     }
                 }
             });
@@ -276,11 +260,16 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         isVisible = false;
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
     public boolean isVisible() {
         return isVisible;
     }
 
-    private void enableWifi(){
+    private void enableWifi() {
         if (mWifiNetworkManager != null) {
             mWifiNetworkManager.setWifiEnabled(false);
             mWifiNetworkManager.setWifiEnabled(true);

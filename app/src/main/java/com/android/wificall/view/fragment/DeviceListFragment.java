@@ -2,7 +2,6 @@ package com.android.wificall.view.fragment;
 
 import android.app.ListFragment;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -121,12 +120,7 @@ public class DeviceListFragment extends ListFragment implements WifiP2pManager.P
             mProgressDialog.dismiss();
         }
         mProgressDialog = ProgressDialog.show(getActivity(), "Press back to cancel", "finding peers", true, true,
-                new DialogInterface.OnCancelListener() {
-
-                    @Override
-                    public void onCancel(DialogInterface dialog) {
-
-                    }
+                dialog -> {
                 });
     }
 

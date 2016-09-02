@@ -55,28 +55,22 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
         mContentView = inflater.inflate(R.layout.device_detail, container, false);
         bind = ButterKnife.bind(this, mContentView);
 
-        ButterKnife.findById(mContentView, R.id.btn_connect).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                WifiP2pConfig config = new WifiP2pConfig();
-                config.deviceAddress = mDevice.deviceAddress;
-                config.groupOwnerIntent = 0;
-                config.wps.setup = WpsInfo.PBC;
-                if (mProgressDialog != null && mProgressDialog.isShowing()) {
-                    mProgressDialog.dismiss();
-                }
-                mProgressDialog = ProgressDialog.show(getActivity(), "Press back to cancel", "Connecting to :"
-                        + mDevice.deviceAddress, true, true);
-                ((DeviceActionListener) getActivity()).connect(config);
+        ButterKnife.findById(mContentView, R.id.btn_connect).setOnClickListener(v -> {
+            WifiP2pConfig config = new WifiP2pConfig();
+            config.deviceAddress = mDevice.deviceAddress;
+            config.groupOwnerIntent = 0;
+            config.wps.setup = WpsInfo.PBC;
+            if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                mProgressDialog.dismiss();
             }
+            mProgressDialog = ProgressDialog.show(getActivity(), "Press back to cancel", "Connecting to :"
+                    + mDevice.deviceAddress, true, true);
+            ((DeviceActionListener) getActivity()).connect(config);
         });
 
-        ButterKnife.findById(mContentView, R.id.btn_disconnect).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Sender.queuePacket(new Packet(Packet.TYPE.BYE, new byte[0], NetworkManager.getSelf().getGroupOwnerMac(),  NetworkManager.getSelf().getMac()));
-                ((DeviceActionListener) getActivity()).disconnect();
-            }
+        ButterKnife.findById(mContentView, R.id.btn_disconnect).setOnClickListener(v -> {
+            Sender.queuePacket(new Packet(Packet.TYPE.BYE, new byte[0], NetworkManager.getSelf().getGroupOwnerMac(),  NetworkManager.getSelf().getMac()));
+            ((DeviceActionListener) getActivity()).disconnect();
         });
 
         return mContentView;

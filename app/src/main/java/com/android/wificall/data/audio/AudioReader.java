@@ -1,4 +1,4 @@
-package com.android.wificall.router.audio;
+package com.android.wificall.data.audio;
 
 import android.app.Activity;
 import android.content.Context;
@@ -87,6 +87,7 @@ public class AudioReader implements Runnable {
                 mAudioTrack.write(packet.getData(), 0, packet.getLength());
             } catch (IOException e) {
                 Log.e("VR", "IOException");
+                e.printStackTrace();
                 isReceiving = false;
                 mActivity.setThreadStopped(true);
                 break;

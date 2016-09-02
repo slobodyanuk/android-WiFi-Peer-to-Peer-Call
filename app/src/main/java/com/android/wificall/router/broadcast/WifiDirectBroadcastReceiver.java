@@ -113,15 +113,12 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 new Thread(s).start();
             }
 
-            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-                @Override
-                public void onGroupInfoAvailable(WifiP2pGroup group) {
-                    if (group != null) {
-                        String passphrase = group.getPassphrase();
-                        String ssid = group.getNetworkName();
-                        Log.d(TAG, "GROUP INFO AVALABLE");
-                        Log.d(TAG, " SSID : " + ssid + "\n Passphrase : " + passphrase);
-                    }
+            mManager.requestGroupInfo(mChannel, group -> {
+                if (group != null) {
+                    String passphrase = group.getPassphrase();
+                    String ssid = group.getNetworkName();
+                    Log.d(TAG, "GROUP INFO AVALABLE");
+                    Log.d(TAG, " SSID : " + ssid + "\n Passphrase : " + passphrase);
                 }
             });
         }
@@ -136,7 +133,6 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "P2P Group created");
-
                 }
 
                 @Override

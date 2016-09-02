@@ -4,8 +4,8 @@ import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.ActivityEvent;
 import com.android.wificall.data.event.MessageEvent;
+import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.router.tcp.TcpReceiver;
-import com.android.wificall.view.activity.CallActivity;
 import com.android.wificall.view.activity.WifiDirectActivity;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
 
@@ -40,7 +40,7 @@ public class Receiver implements Runnable {
         }
 
         try {
-            CallActivity.addJoinedAddress(InetAddress.getByName(ip));
+            AudioSender.addAddress(InetAddress.getByName(ip));
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -58,7 +58,7 @@ public class Receiver implements Runnable {
         }
 
         try {
-            CallActivity.removeLeftAddress(InetAddress.getByName(ip));
+            AudioSender.removeAddress(InetAddress.getByName(ip));
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -67,13 +67,7 @@ public class Receiver implements Runnable {
     public static void updatePeerList() {
         if (activity == null)
             return;
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                DeviceDetailsFragment.updateGroupChatMembersMessage();
-            }
-
-        });
+        activity.runOnUiThread(DeviceDetailsFragment::updateGroupChatMembersMessage);
     }
 
     @Override
