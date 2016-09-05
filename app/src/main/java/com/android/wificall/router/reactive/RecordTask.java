@@ -8,12 +8,11 @@ import rx.Subscriber;
 /**
  * Created by Serhii Slobodyanuk on 01.09.2016.
  */
-public class RecordTask extends BaseTask<byte[]> implements AudioRecorder.OnSendVoice {
+public class RecordTask extends BaseTask<byte[]> {
 
     private CallActivity mActivity;
     private int RECORD_BUFFER_SIZE;
-    private Subscriber mSubscriber;
-    private static AudioRecorder record;
+    private AudioRecorder record;
 
     public RecordTask(CallActivity mActivity, int RECORD_BUFFER_SIZE) {
         this.mActivity = mActivity;
@@ -22,8 +21,7 @@ public class RecordTask extends BaseTask<byte[]> implements AudioRecorder.OnSend
 
     @Override
     protected void executeTask(Subscriber subscriber) {
-        mSubscriber = subscriber;
-        record = new AudioRecorder(mActivity, RECORD_BUFFER_SIZE, this);
+        record = new AudioRecorder(mActivity, RECORD_BUFFER_SIZE, subscriber);
         record.executeRecording();
     }
 
@@ -31,16 +29,5 @@ public class RecordTask extends BaseTask<byte[]> implements AudioRecorder.OnSend
         if (record != null) {
             record.stopRecording();
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public void onSendAudioData(byte[] data) {
-        mSubscriber.onNext(data);
-    }
-
-    @Override
-    public void onCompleted() {
-        mSubscriber.onCompleted();
     }
 }

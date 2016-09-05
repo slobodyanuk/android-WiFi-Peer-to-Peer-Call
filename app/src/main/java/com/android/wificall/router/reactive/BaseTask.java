@@ -7,6 +7,7 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 import rx.subjects.ReplaySubject;
 
 /**
@@ -21,9 +22,9 @@ public abstract class BaseTask<T> {
         unsubscribe();
 
         Observable mObservable = createObservable();
-//        Observable mObservable = ReplaySubject.create(this::executeTask);
         mSubscription = mObservable
                 .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
                 .subscribe(subscriber);
     }
 
@@ -37,6 +38,7 @@ public abstract class BaseTask<T> {
     public void unsubscribe() {
         if (mSubscription != null && !mSubscription.isUnsubscribed()) {
             mSubscription.unsubscribe();
+            mSubscription = null;
         }
     }
 

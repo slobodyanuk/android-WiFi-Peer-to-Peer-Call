@@ -1,6 +1,9 @@
 package com.android.wificall.router.audio;
 
+import android.util.Log;
+
 import com.android.wificall.data.Client;
+import com.android.wificall.data.audio.AudioRecorder;
 import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 
@@ -17,8 +20,9 @@ import java.util.Set;
 /**
  * Created by Serhii Slobodyanuk on 02.09.2016.
  */
-public class AudioSender {
+public class AudioSender implements AudioRecorder.OnSendVoice {
 
+    private static final String TAG = AudioSender.class.getCanonicalName();
     private static ArrayList<InetAddress> mAddresses = new ArrayList<>();
     private DatagramSocket mSendingSocket = null;
 
@@ -84,5 +88,16 @@ public class AudioSender {
                 }
             }
         }
+    }
+
+    @Override
+    public void onSendAudioData(byte[] data) {
+        sendAudio(data);
+        Log.e(TAG, "onSendAudioData");
+    }
+
+    @Override
+    public void onCompleted() {
+        releaseSocket();
     }
 }

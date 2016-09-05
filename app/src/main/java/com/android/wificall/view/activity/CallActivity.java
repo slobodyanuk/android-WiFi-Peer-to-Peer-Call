@@ -14,12 +14,8 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.android.wificall.R;
-import com.android.wificall.data.Packet;
-import com.android.wificall.data.audio.AudioReader;
 import com.android.wificall.data.event.GroupOwnerEvent;
-import com.android.wificall.router.NetworkManager;
-import com.android.wificall.router.Sender;
-import com.android.wificall.router.audio.AudioSender;
+import com.android.wificall.router.reactive.ReceiveTask;
 import com.android.wificall.router.reactive.RecordTask;
 import com.android.wificall.util.Globals;
 import com.android.wificall.util.PermissionsUtil;
@@ -27,8 +23,6 @@ import com.android.wificall.util.TimeConstants;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
-
-import java.util.concurrent.ThreadLocalRandom;
 
 import butterknife.BindView;
 import butterknife.OnClick;
@@ -55,13 +49,10 @@ public class CallActivity extends BaseActivity {
     Button mUpdateButton;
 
     private RecordTask mRecordTask;
+    private ReceiveTask mReceiveTask;
     private AudioTrack mAudioTrack = null;
-    private AudioReader mAudioReader;
-
-    private Thread mReceivingThread = null;
 
     private boolean stopThread = false;
-
     private boolean isUpdating;
 
     private final Handler mHandler = new Handler();
@@ -141,49 +132,40 @@ public class CallActivity extends BaseActivity {
 
     private void initReceivingThread() {
         if (!isGroupOwner) {
-            mAudioReader = new AudioReader(CallActivity.this, RECEIVE_BUFFER_SIZE);
-            mReceivingThread = new Thread(mAudioReader);
-            stopThread = false;
-            mReceivingThread.start();
+            mReceiveTask = new ReceiveTask(RECEIVE_BUFFER_SIZE, this);
+            mReceiveTask.execute(new Subscriber() {
+                @Override
+                public void onCompleted() {
+
+                }
+
+                @Override
+                public void onError(Throwable e) {
+
+                }
+
+                @Override
+                public void onNext(Object o) {
+
+                }
+            });
         }
     }
 
     @OnClick(R.id.update)
     public void onUpdateClick() {
-        mAudioTrack = mAudioReader.getAudioTrack();
-
-        if (mAudioTrack != null) {
-            byte[] rtable = NetworkManager.serializeRoutingTable();
-            Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
-                    .getMac());
-            Sender.queuePacket(ack);
-
-            stopReceiving();
-            if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
-                if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-                    try {
-                        mAudioTrack.flush();
-                        mAudioTrack.stop();
-                    } catch (IllegalStateException e) {
-                        e.printStackTrace();
-                    }
-                }
-                mAudioTrack.release();
-            }
-            initReceivingThread();
-        }
+//        if (mReceiveTask != null) {
+//            stopReceiving();
+//            mReceiveTask.updateReceiver();
+//            initReceivingThread();
+//        }
     }
-
-    int i = 0;
 
     private void startRecording() {
         mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
-        AudioSender audioSender = new AudioSender();
         mRecordTask.execute(new Subscriber<byte[]>() {
             @Override
             public void onCompleted() {
-                Log.e(TAG, "onCompleted: ");
-                audioSender.releaseSocket();
             }
 
             @Override
@@ -193,9 +175,6 @@ public class CallActivity extends BaseActivity {
 
             @Override
             public void onNext(byte[] data) {
-                Log.e(TAG, "onNext: " + data[i] + " count :: "  + i);
-                i++;
-                audioSender.sendAudio(data);
             }
         });
 
@@ -214,18 +193,16 @@ public class CallActivity extends BaseActivity {
         if (mRecordTask != null) {
             mRecordTask.stop();
             mRecordTask.unsubscribe();
+            stopThread = true;
         }
     }
 
     private void stopReceiving() {
-        if (mAudioReader != null) {
-            mAudioReader.stopReceiving();
+        if (mReceiveTask != null) {
+            Log.e(TAG, "stopReceiving");
+            mReceiveTask.stop();
+            //mReceiveTask.unsubscribe();
             stopThread = true;
-        }
-
-        if (mReceivingThread != null) {
-            mReceivingThread.interrupt();
-            mReceivingThread = null;
         }
     }
 
