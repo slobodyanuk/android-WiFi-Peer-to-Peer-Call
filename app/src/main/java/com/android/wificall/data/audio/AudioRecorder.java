@@ -46,8 +46,8 @@ public class AudioRecorder  {
         isRecording = true;
 
         while (isRecording && !mActivity.isThreadStopped()) {
-            mAudioRecord.read(byteData, 0, byteData.length);
-            mSendCallback.onSendAudioData(byteData);
+                mAudioRecord.read(byteData, 0, byteData.length);
+                mSendCallback.onSendAudioData(byteData);
         }
     }
 

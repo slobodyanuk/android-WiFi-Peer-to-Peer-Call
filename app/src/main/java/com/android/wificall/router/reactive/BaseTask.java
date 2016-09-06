@@ -1,6 +1,7 @@
 package com.android.wificall.router.reactive;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -9,6 +10,7 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.ReplaySubject;
+import rx.subjects.Subject;
 
 /**
  * Created by Serhii Slobodyanuk on 01.09.2016.
@@ -20,11 +22,9 @@ public abstract class BaseTask<T> {
     @SuppressWarnings("unchecked")
     public void execute(final Subscriber<T> subscriber) {
         unsubscribe();
-
         Observable mObservable = createObservable();
         mSubscription = mObservable
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.newThread())
                 .subscribe(subscriber);
     }
 

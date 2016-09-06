@@ -27,7 +27,7 @@ public class ReceiveTask extends BaseTask {
 
     public void updateReceiver() {
         if (mAudioReader != null) {
-            //mAudioReader.onReleaseTrack();
+            mAudioReader.onReleaseTrack();
         }
     }
 

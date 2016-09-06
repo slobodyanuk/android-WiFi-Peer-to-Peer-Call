@@ -154,11 +154,11 @@ public class CallActivity extends BaseActivity {
 
     @OnClick(R.id.update)
     public void onUpdateClick() {
-//        if (mReceiveTask != null) {
-//            stopReceiving();
-//            mReceiveTask.updateReceiver();
-//            initReceivingThread();
-//        }
+        if (mReceiveTask != null) {
+            stopReceiving();
+            mReceiveTask.updateReceiver();
+            initReceivingThread();
+        }
     }
 
     private void startRecording() {
