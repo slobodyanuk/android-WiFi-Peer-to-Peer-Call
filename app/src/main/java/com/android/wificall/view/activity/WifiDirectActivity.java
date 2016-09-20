@@ -18,9 +18,6 @@ import android.widget.Toast;
 
 import com.android.wificall.App;
 import com.android.wificall.R;
-import com.android.wificall.data.Packet;
-import com.android.wificall.router.NetworkManager;
-import com.android.wificall.router.Sender;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.view.fragment.DeviceDetailsFragment;
@@ -73,7 +70,6 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         }
 
         initRouterSettings();
-
     }
 
     public void setWifiP2pEnabled(boolean isWifiP2pEnabled) {
@@ -117,9 +113,10 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     }
 
     public void resetData() {
-        DeviceListFragment fragmentList = (DeviceListFragment) getFragmentManager().findFragmentById(R.id.frag_list);
-        DeviceDetailsFragment fragmentDetails = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
-                R.id.frag_detail);
+        DeviceListFragment fragmentList = (DeviceListFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_list);
+        DeviceDetailsFragment fragmentDetails = (DeviceDetailsFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_detail);
         if (fragmentList != null) {
             fragmentList.clearPeers();
         }
@@ -133,8 +130,8 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         if (!isWifiP2pEnabled) {
             Toast.makeText(this, R.string.p2p_off_warning, Toast.LENGTH_SHORT).show();
         }
-        final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager().findFragmentById(
-                R.id.frag_list);
+        final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_list);
         fragment.onInitiateDiscovery();
         mWifiManager.discoverPeers(mWifiChannel, new WifiP2pManager.ActionListener() {
 
@@ -166,15 +163,16 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
     @Override
     public void showDetails(WifiP2pDevice device) {
-        DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(R.id.frag_detail);
+        DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_detail);
         fragment.showDetails(device);
     }
 
     @Override
     public void cancelDisconnect() {
         if (mWifiManager != null) {
-            final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager().findFragmentById(
-                    R.id.frag_list);
+            final DeviceListFragment fragment = (DeviceListFragment) getFragmentManager()
+                    .findFragmentById(R.id.frag_list);
             if (fragment.getDevice() == null || fragment.getDevice().status == WifiP2pDevice.CONNECTED) {
                 disconnect();
             } else if (fragment.getDevice().status == WifiP2pDevice.AVAILABLE
@@ -209,8 +207,8 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
             @Override
             public void onFailure(int reason) {
                 Toast.makeText(WifiDirectActivity.this, "Connect failed. Retry. Try Disable/Re-Enable Wi-Fi.", Toast.LENGTH_SHORT).show();
-                final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
-                        R.id.frag_detail);
+                final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager()
+                        .findFragmentById(R.id.frag_detail);
                 fragment.dismissDialog();
                 enableWifi();
             }
@@ -219,8 +217,8 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
     @Override
     public void disconnect() {
-        final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager().findFragmentById(
-                R.id.frag_detail);
+        final DeviceDetailsFragment fragment = (DeviceDetailsFragment) getFragmentManager()
+                .findFragmentById(R.id.frag_detail);
         fragment.resetViews();
 
         if (mWifiManager != null && mWifiChannel != null) {
@@ -242,7 +240,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
                                     Log.d(TAG, "removeGroup onFailure -" + reason);
                                 }
                             });
-                        }else{
+                        } else {
                             fragment.resetViews();
                         }
                     }
@@ -280,7 +278,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
         return isVisible;
     }
 
-    private void enableWifi(){
+    private void enableWifi() {
         if (mWifiNetworkManager != null) {
             mWifiNetworkManager.setWifiEnabled(false);
             mWifiNetworkManager.setWifiEnabled(true);

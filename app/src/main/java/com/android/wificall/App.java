@@ -71,11 +71,11 @@ public class App extends Application implements Application.ActivityLifecycleCal
     private void deletePersistentGroups() {
         try {
             Method[] methods = WifiP2pManager.class.getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                if (methods[i].getName().equals("deletePersistentGroup")) {
+            for (Method method : methods) {
+                if (method.getName().equals("deletePersistentGroup")) {
                     // Delete any persistent group
                     for (int netId = 0; netId < 32; netId++) {
-                        methods[i].invoke(mManager, mChannel, netId, null);
+                        method.invoke(mManager, mChannel, netId, null);
                     }
                 }
             }

@@ -93,7 +93,6 @@ public class DeviceDetailsFragment extends Fragment implements WifiP2pManager.Co
             Sender.queuePacket(new Packet(Packet.TYPE.HELLO, new byte[0], null, WifiDirectBroadcastReceiver.MAC));
         }
 
-        // hide the connect button
         mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
     }
 

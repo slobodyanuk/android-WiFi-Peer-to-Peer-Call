@@ -57,7 +57,7 @@ public class CallActivity extends BaseActivity {
 
     private AudioTrack mAudioTrack = null;
     private AudioReader mAudioReader;
-    private static AudioRecorder mAudioRecorder;
+    private static AudioRecorder sAudioRecorder;
 
     private Thread mRecordingThread = null;
     private Thread mReceivingThread = null;
@@ -78,14 +78,14 @@ public class CallActivity extends BaseActivity {
     };
 
     public static void addJoinedAddress(InetAddress address) {
-        if (mAudioRecorder != null) {
-            mAudioRecorder.setAddress(address);
+        if (sAudioRecorder != null) {
+            sAudioRecorder.setAddress(address);
         }
     }
 
     public static void removeLeftAddress(InetAddress address) {
-        if (mAudioRecorder != null) {
-            mAudioRecorder.removeAddress(address);
+        if (sAudioRecorder != null) {
+            sAudioRecorder.removeAddress(address);
         }
     }
 
@@ -101,9 +101,7 @@ public class CallActivity extends BaseActivity {
         if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && PermissionsUtil.needRecordAudioPermissions(this)) {
             PermissionsUtil.requestRecordAudioPermission(this);
-//            mStartButton.setVisibility(View.GONE);
-//            mStopButton.setVisibility(View.GONE);
-            onStartClick();
+            startRecording();
         }
     }
 
@@ -137,17 +135,14 @@ public class CallActivity extends BaseActivity {
         }
 
         if (!isGroupOwner) {
-//            mStartButton.setVisibility(View.GONE);
-//            mStopButton.setVisibility(View.GONE);
             mCallMessage.setText(getString(R.string.receive_msg));
             mUpdateButton.setVisibility(View.VISIBLE);
         } else {
             mCallMessage.setText(getString(R.string.record_msg));
-            onStartClick();
+            startRecording();
             mUpdateButton.setVisibility(View.GONE);
         }
 
-        enableButtons(false);
         initReceivingThread();
     }
 
@@ -167,29 +162,18 @@ public class CallActivity extends BaseActivity {
         }
     }
 
-    // @OnClick(R.id.start)
-    public void onStartClick() {
-        enableButtons(true);
-        startRecording();
-    }
-
-    //@OnClick(R.id.stop)
-    public void onStopClick() {
-        enableButtons(false);
-        stopRecording();
-    }
-
     @OnClick(R.id.update)
     public void onUpdateClick() {
-        mAudioTrack = mAudioReader.getAudioTrack();
+        AudioTrack mAudioTrack = mAudioReader.getAudioTrack();
 
         if (mAudioTrack != null) {
             byte[] rtable = NetworkManager.serializeRoutingTable();
-            Packet ack = new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf()
-                    .getMac());
+            Packet ack =
+                    new Packet(Packet.TYPE.HELLO_ACK, rtable, NetworkManager.getSelf().getGroupOwnerMac(),
+                            NetworkManager.getSelf().getMac());
             Sender.queuePacket(ack);
-
             stopReceiving();
+
             if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
                 if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
                     try {
@@ -206,9 +190,8 @@ public class CallActivity extends BaseActivity {
     }
 
     private void startRecording() {
-
-        mAudioRecorder = new AudioRecorder(this, RECORD_BUFFER_SIZE);
-        mRecordingThread = new Thread(mAudioRecorder);
+        sAudioRecorder = new AudioRecorder(this, RECORD_BUFFER_SIZE);
+        mRecordingThread = new Thread(sAudioRecorder);
         stopThread = false;
         mRecordingThread.start();
     }
@@ -222,10 +205,10 @@ public class CallActivity extends BaseActivity {
     }
 
     private void stopRecording() {
-        if (mAudioRecorder != null) {
-            mAudioRecorder.stopRecording();
+        if (sAudioRecorder != null) {
+            sAudioRecorder.stopRecording();
         }
-        if (mReceivingThread != null) {
+        if (mRecordingThread != null) {
             mRecordingThread.interrupt();
             mRecordingThread = null;
         }
@@ -247,9 +230,7 @@ public class CallActivity extends BaseActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == Globals.REQUEST_RECORD_AUDIO) {
             if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-//                mStartButton.setVisibility(View.VISIBLE);
-//                mStopButton.setVisibility(View.VISIBLE);
-                onStartClick();
+                startRecording();
             } else {
                 finish();
             }
@@ -274,25 +255,13 @@ public class CallActivity extends BaseActivity {
             stopUpdating();
             stopReceiving();
             stopRecording();
-            enableButtons(false);
         }
-    }
-
-    private void enableButtons(boolean isRecording) {
-//        enableButton(mStartButton, !isRecording);
-//        enableButton(mStopButton, isRecording);
-    }
-
-
-    private void enableButton(Button button, boolean isEnable) {
-        button.setEnabled(isEnable);
     }
 
     private void stopUpdating() {
         isUpdating = false;
         mHandler.removeCallbacksAndMessages(null);
     }
-
 
     @Override
     protected int getLayoutResource() {
