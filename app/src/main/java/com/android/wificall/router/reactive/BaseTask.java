@@ -1,16 +1,11 @@
 package com.android.wificall.router.reactive;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import org.reactivestreams.Subscription;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.ReplaySubject;
-import rx.subjects.Subject;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.DefaultSubscriber;
 
 /**
  * Created by Serhii Slobodyanuk on 01.09.2016.
@@ -19,27 +14,28 @@ public abstract class BaseTask<T> {
 
     private Subscription mSubscription;
 
+
     @SuppressWarnings("unchecked")
-    public void execute(final Subscriber<T> subscriber) {
-        unsubscribe();
-        Observable mObservable = createObservable();
-        mSubscription = mObservable
-                .subscribeOn(Schedulers.newThread())
+    public void execute(final DefaultSubscriber<byte[]> subscriber) {
+       // unsubscribe();
+        Flowable mObservable = createObservable();
+        mObservable
+                .subscribeOn(Schedulers.io())
                 .subscribe(subscriber);
     }
 
-    private Observable createObservable() {
-        return Observable.create((Observable.OnSubscribe<Object>) this::executeTask);
+    private Flowable createObservable() {
+        return Flowable.create(e -> executeTask((FlowableEmitter<T>) e), FlowableEmitter.BackpressureMode.BUFFER);
     }
 
-    protected abstract void executeTask(Subscriber<? super T> subscriber);
+    protected abstract void executeTask(FlowableEmitter<T> subscribe);
 
     @SuppressWarnings("SpellCheckingInspection")
     public void unsubscribe() {
-        if (mSubscription != null && !mSubscription.isUnsubscribed()) {
-            mSubscription.unsubscribe();
-            mSubscription = null;
-        }
+//        if (mSubscription != null && !mSubscription.isUnsubscribed()) {
+//            mSubscription.unsubscribe();
+//            mSubscription = null;
+//        }
     }
 
 }

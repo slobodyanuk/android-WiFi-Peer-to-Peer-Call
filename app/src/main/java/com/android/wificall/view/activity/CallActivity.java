@@ -26,7 +26,7 @@ import org.greenrobot.eventbus.Subscribe;
 
 import butterknife.BindView;
 import butterknife.OnClick;
-import rx.Subscriber;
+import io.reactivex.subscribers.DefaultSubscriber;
 
 import static com.android.wificall.router.Configuration.RECORDER_AUDIO_ENCODING;
 import static com.android.wificall.router.Configuration.RECORDER_CHANNEL_IN;
@@ -133,20 +133,20 @@ public class CallActivity extends BaseActivity {
     private void initReceivingThread() {
         if (!isGroupOwner) {
             mReceiveTask = new ReceiveTask(RECEIVE_BUFFER_SIZE, this);
-            mReceiveTask.execute(new Subscriber() {
+            mReceiveTask.execute(new DefaultSubscriber<byte[]>() {
                 @Override
-                public void onCompleted() {
-
+                public void onNext(byte[] bytes) {
+                    Log.e(TAG, "onNext: " + bytes);
                 }
 
                 @Override
-                public void onError(Throwable e) {
-
+                public void onError(Throwable t) {
+                    Log.d(TAG, "onError: " + t);
                 }
 
                 @Override
-                public void onNext(Object o) {
-
+                public void onComplete() {
+                    Log.d(TAG, "onComplete: ");
                 }
             });
         }
@@ -163,18 +163,20 @@ public class CallActivity extends BaseActivity {
 
     private void startRecording() {
         mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
-        mRecordTask.execute(new Subscriber<byte[]>() {
+        mRecordTask.execute(new DefaultSubscriber<byte[]>() {
             @Override
-            public void onCompleted() {
+            public void onNext(byte[] bytes) {
+                Log.e(TAG, "onNext: " + bytes);
             }
 
             @Override
-            public void onError(Throwable e) {
-
+            public void onError(Throwable t) {
+                Log.d(TAG, "onError: " + t);
             }
 
             @Override
-            public void onNext(byte[] data) {
+            public void onComplete() {
+                Log.d(TAG, "onComplete: ");
             }
         });
 

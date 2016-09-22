@@ -11,7 +11,7 @@ import com.android.wificall.router.Sender;
 import com.android.wificall.router.audio.AudioReceiver;
 import com.android.wificall.view.activity.CallActivity;
 
-import rx.Subscriber;
+import io.reactivex.FlowableEmitter;
 
 import static com.android.wificall.router.Configuration.RECORDER_AUDIO_ENCODING;
 import static com.android.wificall.router.Configuration.RECORDER_CHANNEL_OUT;
@@ -27,9 +27,9 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     private AudioTrack mAudioTrack;
     private CallActivity mActivity;
     private AudioReceiver mAudioReceiver;
-    private Subscriber mSubscriber;
+    private FlowableEmitter mSubscriber;
 
-    public AudioReader(CallActivity activity, int bufferSize, Subscriber subscriber) {
+    public AudioReader(CallActivity activity, int bufferSize, FlowableEmitter subscriber) {
         mActivity = activity;
         RECEIVE_BUFFER_SIZE = bufferSize;
         this.mSubscriber = subscriber;
@@ -56,7 +56,8 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     @Override
     public void onReceiveData(byte[] data, int length) {
         if (mAudioTrack != null) {
-                mAudioTrack.write(data, 0, length);
+            mAudioTrack.write(data, 0, length);
+            mSubscriber.onNext(data);
         }
     }
 
@@ -80,6 +81,7 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
             }
             mAudioTrack.release();
         }
+
     }
 
     @Override
@@ -90,7 +92,7 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     public void stop() {
         if (mSubscriber != null && mAudioReceiver != null) {
             Log.e(TAG, "stop: audio reader");
-            mSubscriber.onCompleted();
+            mSubscriber.onComplete();
             mAudioReceiver.stopReceiving();
         }
     }

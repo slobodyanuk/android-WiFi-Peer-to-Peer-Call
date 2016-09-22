@@ -6,7 +6,7 @@ import android.media.MediaRecorder;
 import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.view.activity.CallActivity;
 
-import rx.Subscriber;
+import io.reactivex.FlowableEmitter;
 
 import static com.android.wificall.router.Configuration.RECORDER_AUDIO_ENCODING;
 import static com.android.wificall.router.Configuration.RECORDER_CHANNEL_IN;
@@ -22,9 +22,9 @@ public class AudioRecorder  {
     private CallActivity mActivity;
     private AudioRecord mAudioRecord;
     private OnSendVoice mSendCallback;
-    private Subscriber mSubscriber;
+    private FlowableEmitter<byte[]> mSubscriber;
 
-    public AudioRecorder(CallActivity mActivity, int RECORD_BUFFER_SIZE, Subscriber subscriber) {
+    public AudioRecorder(CallActivity mActivity, int RECORD_BUFFER_SIZE, FlowableEmitter<byte[]> subscriber) {
         this.mActivity = mActivity;
         this.RECORD_BUFFER_SIZE = RECORD_BUFFER_SIZE;
         this.mSubscriber = subscriber;
@@ -47,6 +47,7 @@ public class AudioRecorder  {
 
         while (isRecording && !mActivity.isThreadStopped()) {
                 mAudioRecord.read(byteData, 0, byteData.length);
+                mSubscriber.onNext(byteData);
                 mSendCallback.onSendAudioData(byteData);
         }
     }
@@ -58,7 +59,7 @@ public class AudioRecorder  {
 
     public void stopRecording() {
         mSendCallback.onCompleted();
-        mSubscriber.onCompleted();
+        mSubscriber.onComplete();
         if (null != mAudioRecord) {
             isRecording = false;
             mAudioRecord.stop();

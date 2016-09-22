@@ -1,7 +1,5 @@
 package com.android.wificall.router.audio;
 
-import android.util.Log;
-
 import com.android.wificall.data.Client;
 import com.android.wificall.data.audio.AudioRecorder;
 import com.android.wificall.router.Configuration;
@@ -26,8 +24,11 @@ public class AudioSender implements AudioRecorder.OnSendVoice {
     private static ArrayList<InetAddress> mAddresses = new ArrayList<>();
     private DatagramSocket mSendingSocket = null;
 
-    public void sendAudio(byte[] data) {
+    public AudioSender() {
+        initSocket();
+    }
 
+    private void initSocket() {
         for (Client c : NetworkManager.routingTable.values()) {
             if (c.getMac().equals(NetworkManager.getSelf().getMac()))
                 continue;
@@ -44,7 +45,9 @@ public class AudioSender implements AudioRecorder.OnSendVoice {
             e.printStackTrace();
             return;
         }
+    }
 
+    public void sendAudio(byte[] data) {
         DatagramPacket packet = new DatagramPacket(data, data.length);
         for (int i = 0; i < mAddresses.size(); i++) {
             try {
@@ -93,7 +96,7 @@ public class AudioSender implements AudioRecorder.OnSendVoice {
     @Override
     public void onSendAudioData(byte[] data) {
         sendAudio(data);
-        Log.e(TAG, "onSendAudioData");
+//        Log.e(TAG, "onSendAudioData");
     }
 
     @Override

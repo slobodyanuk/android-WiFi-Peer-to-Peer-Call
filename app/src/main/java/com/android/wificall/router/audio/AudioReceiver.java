@@ -3,6 +3,7 @@ package com.android.wificall.router.audio;
 import android.util.Log;
 
 import com.android.wificall.data.Packet;
+import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Sender;
 import com.android.wificall.view.activity.CallActivity;
@@ -10,8 +11,8 @@ import com.android.wificall.view.activity.CallActivity;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-
-import static com.android.wificall.router.Configuration.RECEIVE_PORT;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
 
 /**
  * Created by Serhii Slobodyanuk on 02.09.2016.
@@ -23,6 +24,7 @@ public class AudioReceiver {
     private byte[] buffer;
     private CallActivity mActivity;
     private OnReceiveDataListener mOnReceiveDataListener;
+    private DatagramChannel mSocketChannel;
 
     public AudioReceiver(CallActivity activity, int bufferSize, OnReceiveDataListener listener) {
         this.mActivity = activity;
@@ -33,7 +35,12 @@ public class AudioReceiver {
 
     public void receiveData() {
         try {
-            mReceivingSocket = new DatagramSocket(RECEIVE_PORT);
+            if (mReceivingSocket == null) {
+                mSocketChannel = DatagramChannel.open();
+                mReceivingSocket = mSocketChannel.socket();
+                mReceivingSocket.setReuseAddress(true);
+                mReceivingSocket.bind(new InetSocketAddress(Configuration.RECEIVE_PORT));
+            }
             buffer = new byte[mReceivingSocket.getReceiveBufferSize() / 10];
 
             byte[] routingTable = NetworkManager.serializeRoutingTable();

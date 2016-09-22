@@ -3,7 +3,8 @@ package com.android.wificall.router.reactive;
 import com.android.wificall.data.audio.AudioRecorder;
 import com.android.wificall.view.activity.CallActivity;
 
-import rx.Subscriber;
+import io.reactivex.FlowableEmitter;
+
 
 /**
  * Created by Serhii Slobodyanuk on 01.09.2016.
@@ -19,15 +20,15 @@ public class RecordTask extends BaseTask<byte[]> {
         this.RECORD_BUFFER_SIZE = RECORD_BUFFER_SIZE;
     }
 
-    @Override
-    protected void executeTask(Subscriber subscriber) {
-        record = new AudioRecorder(mActivity, RECORD_BUFFER_SIZE, subscriber);
-        record.executeRecording();
-    }
-
     public void stop() {
         if (record != null) {
             record.stopRecording();
         }
+    }
+
+    @Override
+    protected void executeTask(FlowableEmitter<byte[]> subscribe) {
+        record = new AudioRecorder(mActivity, RECORD_BUFFER_SIZE, subscribe);
+        record.executeRecording();
     }
 }
