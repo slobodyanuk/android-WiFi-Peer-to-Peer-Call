@@ -1,7 +1,6 @@
 package com.android.wificall.router.audio;
 
 import com.android.wificall.data.Client;
-import com.android.wificall.data.audio.AudioRecorder;
 import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 
@@ -18,7 +17,7 @@ import java.util.Set;
 /**
  * Created by Serhii Slobodyanuk on 02.09.2016.
  */
-public class AudioSender implements AudioRecorder.OnSendVoice {
+public class AudioSender implements OnSendAudioListener {
 
     private static final String TAG = AudioSender.class.getCanonicalName();
     private static ArrayList<InetAddress> mAddresses = new ArrayList<>();
@@ -44,23 +43,6 @@ public class AudioSender implements AudioRecorder.OnSendVoice {
         } catch (SocketException e) {
             e.printStackTrace();
             return;
-        }
-    }
-
-    public void sendAudio(byte[] data) {
-        DatagramPacket packet = new DatagramPacket(data, data.length);
-        for (int i = 0; i < mAddresses.size(); i++) {
-            try {
-                packet.setAddress(mAddresses.get(i));
-                packet.setData(data);
-                packet.setLength(data.length);
-                packet.setPort(Configuration.RECEIVE_PORT);
-                if (mSendingSocket != null) {
-                    mSendingSocket.send(packet);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -95,8 +77,20 @@ public class AudioSender implements AudioRecorder.OnSendVoice {
 
     @Override
     public void onSendAudioData(byte[] data) {
-        sendAudio(data);
-//        Log.e(TAG, "onSendAudioData");
+        DatagramPacket packet = new DatagramPacket(data, data.length);
+        for (int i = 0; i < mAddresses.size(); i++) {
+            try {
+                packet.setAddress(mAddresses.get(i));
+                packet.setData(data);
+                packet.setLength(data.length);
+                packet.setPort(Configuration.RECEIVE_PORT);
+                if (mSendingSocket != null) {
+                    mSendingSocket.send(packet);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override

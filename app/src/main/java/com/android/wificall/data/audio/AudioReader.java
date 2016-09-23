@@ -57,7 +57,6 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     public void onReceiveData(byte[] data, int length) {
         if (mAudioTrack != null) {
             mAudioTrack.write(data, 0, length);
-            mSubscriber.onNext(data);
         }
     }
 

@@ -15,6 +15,8 @@ import android.widget.TextView;
 
 import com.android.wificall.R;
 import com.android.wificall.data.event.GroupOwnerEvent;
+import com.android.wificall.router.audio.AudioSender;
+import com.android.wificall.router.audio.OnSendAudioListener;
 import com.android.wificall.router.reactive.ReceiveTask;
 import com.android.wificall.router.reactive.RecordTask;
 import com.android.wificall.util.Globals;
@@ -65,6 +67,7 @@ public class CallActivity extends BaseActivity {
             }
         }
     };
+    private OnSendAudioListener mSendCallback;
 
     @Override
     protected void onStart() {
@@ -155,18 +158,20 @@ public class CallActivity extends BaseActivity {
     @OnClick(R.id.update)
     public void onUpdateClick() {
         if (mReceiveTask != null) {
-            stopReceiving();
-            mReceiveTask.updateReceiver();
-            initReceivingThread();
+//            stopReceiving();
+//            mReceiveTask.updateReceiver();
+//            initReceivingThread();
         }
     }
 
     private void startRecording() {
         mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
+        mSendCallback = new AudioSender();
         mRecordTask.execute(new DefaultSubscriber<byte[]>() {
             @Override
             public void onNext(byte[] bytes) {
                 Log.e(TAG, "onNext: " + bytes);
+                mSendCallback.onSendAudioData(bytes);
             }
 
             @Override
@@ -177,6 +182,7 @@ public class CallActivity extends BaseActivity {
             @Override
             public void onComplete() {
                 Log.d(TAG, "onComplete: ");
+                mSendCallback.onCompleted();
             }
         });
 
@@ -194,7 +200,6 @@ public class CallActivity extends BaseActivity {
     private void stopRecording() {
         if (mRecordTask != null) {
             mRecordTask.stop();
-            mRecordTask.unsubscribe();
             stopThread = true;
         }
     }
@@ -203,7 +208,6 @@ public class CallActivity extends BaseActivity {
         if (mReceiveTask != null) {
             Log.e(TAG, "stopReceiving");
             mReceiveTask.stop();
-            //mReceiveTask.unsubscribe();
             stopThread = true;
         }
     }

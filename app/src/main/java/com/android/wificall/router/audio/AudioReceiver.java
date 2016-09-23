@@ -24,7 +24,6 @@ public class AudioReceiver {
     private byte[] buffer;
     private CallActivity mActivity;
     private OnReceiveDataListener mOnReceiveDataListener;
-    private DatagramChannel mSocketChannel;
 
     public AudioReceiver(CallActivity activity, int bufferSize, OnReceiveDataListener listener) {
         this.mActivity = activity;
@@ -36,7 +35,7 @@ public class AudioReceiver {
     public void receiveData() {
         try {
             if (mReceivingSocket == null) {
-                mSocketChannel = DatagramChannel.open();
+                DatagramChannel mSocketChannel = DatagramChannel.open();
                 mReceivingSocket = mSocketChannel.socket();
                 mReceivingSocket.setReuseAddress(true);
                 mReceivingSocket.bind(new InetSocketAddress(Configuration.RECEIVE_PORT));
@@ -73,11 +72,6 @@ public class AudioReceiver {
                 break;
             }
         }
-//        if (mReceivingSocket != null) {
-//            mReceivingSocket.disconnect();
-//            mReceivingSocket.close();
-//        }
-//        mOnReceiveDataListener.onReleaseTrack();
     }
 
     public interface OnReceiveDataListener {
