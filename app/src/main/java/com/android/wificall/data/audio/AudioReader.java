@@ -9,6 +9,8 @@ import com.android.wificall.data.Packet;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Sender;
 import com.android.wificall.router.audio.AudioReceiver;
+import com.android.wificall.router.audio.OnReceiveAudioListener;
+import com.android.wificall.util.RetryExecution;
 import com.android.wificall.view.activity.CallActivity;
 
 import io.reactivex.FlowableEmitter;
@@ -20,7 +22,7 @@ import static com.android.wificall.router.Configuration.RECORDER_RATE;
 /**
  * Created by Serhii Slobodyanuk on 23.08.2016.
  */
-public class AudioReader implements AudioReceiver.OnReceiveDataListener {
+public class AudioReader implements OnReceiveAudioListener {
     private static final String TAG = AudioReader.class.getCanonicalName();
     private int RECEIVE_BUFFER_SIZE;
 
@@ -28,10 +30,16 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     private CallActivity mActivity;
     private AudioReceiver mAudioReceiver;
     private FlowableEmitter mSubscriber;
+    private RetryExecution mRetryExecutionListener;
 
-    public AudioReader(CallActivity activity, int bufferSize, FlowableEmitter subscriber) {
-        mActivity = activity;
-        RECEIVE_BUFFER_SIZE = bufferSize;
+    public AudioReader(CallActivity mActivity, int receive_buffer_size) {
+        this.mActivity = mActivity;
+        RECEIVE_BUFFER_SIZE = receive_buffer_size;
+        mAudioReceiver = new  AudioReceiver(mActivity, RECEIVE_BUFFER_SIZE, this);
+        mRetryExecutionListener = mActivity;
+    }
+
+    public void setSubscriber(FlowableEmitter subscriber){
         this.mSubscriber = subscriber;
     }
 
@@ -49,8 +57,8 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
         mAudioManager.setParameters("noise_suppression=auto");
 
         mAudioTrack.play();
+        mAudioReceiver.receiveData(mSubscriber);
 
-        mAudioReceiver = new AudioReceiver(mActivity, RECEIVE_BUFFER_SIZE, this);
     }
 
     @Override
@@ -60,7 +68,6 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
         }
     }
 
-    @Override
     public void onReleaseTrack() {
         Log.e(TAG, "onReleaseTrack");
         byte[] rtable = NetworkManager.serializeRoutingTable();
@@ -70,7 +77,6 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
 
         if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
             if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-
                 try {
                     mAudioTrack.flush();
                     mAudioTrack.stop();
@@ -84,13 +90,28 @@ public class AudioReader implements AudioReceiver.OnReceiveDataListener {
     }
 
     @Override
-    public void onError() {
-        Log.e(TAG, "onError: ");
+    public void onUpdateSubscriber() {
+        Log.e(TAG, "onUpdateSubscriber");
+        onReleaseTrack();
+        stop();
+        mRetryExecutionListener.onRetryExecution();
     }
+
 
     public void stop() {
         if (mSubscriber != null && mAudioReceiver != null) {
             Log.e(TAG, "stop: audio reader");
+            if (mAudioTrack != null && mAudioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
+                if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                    try {
+                        mAudioTrack.flush();
+                        mAudioTrack.stop();
+                    } catch (IllegalStateException e) {
+                        e.printStackTrace();
+                    }
+                }
+                mAudioTrack.release();
+            }
             mSubscriber.onComplete();
             mAudioReceiver.stopReceiving();
         }

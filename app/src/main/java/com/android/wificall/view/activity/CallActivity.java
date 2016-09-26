@@ -16,15 +16,19 @@ import android.widget.TextView;
 import com.android.wificall.R;
 import com.android.wificall.data.event.GroupOwnerEvent;
 import com.android.wificall.router.audio.AudioSender;
+import com.android.wificall.router.audio.OnReceiveAudioListener;
 import com.android.wificall.router.audio.OnSendAudioListener;
 import com.android.wificall.router.reactive.ReceiveTask;
 import com.android.wificall.router.reactive.RecordTask;
 import com.android.wificall.util.Globals;
 import com.android.wificall.util.PermissionsUtil;
+import com.android.wificall.util.RetryExecution;
 import com.android.wificall.util.TimeConstants;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+
+import java.net.DatagramPacket;
 
 import butterknife.BindView;
 import butterknife.OnClick;
@@ -35,7 +39,7 @@ import static com.android.wificall.router.Configuration.RECORDER_CHANNEL_IN;
 import static com.android.wificall.router.Configuration.RECORDER_CHANNEL_OUT;
 import static com.android.wificall.router.Configuration.RECORDER_RATE;
 
-public class CallActivity extends BaseActivity {
+public class CallActivity extends BaseActivity implements RetryExecution {
 
     private static final String TAG = CallActivity.class.getCanonicalName();
 
@@ -78,10 +82,16 @@ public class CallActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.e(TAG, "onResume");
         if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && PermissionsUtil.needRecordAudioPermissions(this)) {
             PermissionsUtil.requestRecordAudioPermission(this);
-            startRecording();
+        }else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M){
+            if (isGroupOwner){
+                startRecording();
+            }else{
+                initReceivingThread();
+            }
         }
     }
 
@@ -123,7 +133,6 @@ public class CallActivity extends BaseActivity {
             mUpdateButton.setVisibility(View.GONE);
         }
 
-        initReceivingThread();
     }
 
     @Subscribe
@@ -136,20 +145,21 @@ public class CallActivity extends BaseActivity {
     private void initReceivingThread() {
         if (!isGroupOwner) {
             mReceiveTask = new ReceiveTask(RECEIVE_BUFFER_SIZE, this);
-            mReceiveTask.execute(new DefaultSubscriber<byte[]>() {
+            OnReceiveAudioListener mReceiveAudioListener = mReceiveTask.initAudioReader();
+            mReceiveTask.execute(new DefaultSubscriber<DatagramPacket>() {
                 @Override
-                public void onNext(byte[] bytes) {
-                    Log.e(TAG, "onNext: " + bytes);
+                public void onNext(DatagramPacket packet) {
+                    mReceiveAudioListener.onReceiveData(packet.getData(), packet.getLength());
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    Log.d(TAG, "onError: " + t);
+                    Log.e(TAG, "onUpdateSubscriber: " + t);
                 }
 
                 @Override
                 public void onComplete() {
-                    Log.d(TAG, "onComplete: ");
+                    Log.d(TAG, "onComplete: receive");
                 }
             });
         }
@@ -158,9 +168,7 @@ public class CallActivity extends BaseActivity {
     @OnClick(R.id.update)
     public void onUpdateClick() {
         if (mReceiveTask != null) {
-//            stopReceiving();
-//            mReceiveTask.updateReceiver();
-//            initReceivingThread();
+            mReceiveTask.updateReceiver();
         }
     }
 
@@ -170,13 +178,12 @@ public class CallActivity extends BaseActivity {
         mRecordTask.execute(new DefaultSubscriber<byte[]>() {
             @Override
             public void onNext(byte[] bytes) {
-                Log.e(TAG, "onNext: " + bytes);
                 mSendCallback.onSendAudioData(bytes);
             }
 
             @Override
             public void onError(Throwable t) {
-                Log.d(TAG, "onError: " + t);
+                Log.d(TAG, "onUpdateSubscriber: " + t);
             }
 
             @Override
@@ -228,6 +235,7 @@ public class CallActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        Log.e(TAG, "onPause");
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 
         boolean screenOn;
@@ -258,5 +266,10 @@ public class CallActivity extends BaseActivity {
     protected void onStop() {
         super.onStop();
         EventBus.getDefault().unregister(this);
+    }
+
+    @Override
+    public void onRetryExecution() {
+        initReceivingThread();
     }
 }

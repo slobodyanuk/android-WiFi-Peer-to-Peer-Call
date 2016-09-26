@@ -148,7 +148,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
 
     @OnClick(R.id.btn_call)
     public void onCallClick() {
-        Intent i = new Intent(getApplicationContext(), CallActivity.class);
+        Intent i = new Intent(WifiDirectActivity.this, CallActivity.class);
         startActivity(i);
     }
 
@@ -256,6 +256,7 @@ public class WifiDirectActivity extends BaseActivity implements WifiP2pManager.C
     @Override
     public void onPause() {
         super.onPause();
+        Log.e(TAG, "onPause");
         unregisterReceiver(mReceiver);
         isVisible = false;
     }

@@ -14,6 +14,8 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
 
+import io.reactivex.FlowableEmitter;
+
 /**
  * Created by Serhii Slobodyanuk on 02.09.2016.
  */
@@ -23,16 +25,15 @@ public class AudioReceiver {
     private DatagramSocket mReceivingSocket = null;
     private byte[] buffer;
     private CallActivity mActivity;
-    private OnReceiveDataListener mOnReceiveDataListener;
+    private OnReceiveAudioListener mOnReceiveDataListener;
 
-    public AudioReceiver(CallActivity activity, int bufferSize, OnReceiveDataListener listener) {
+    public AudioReceiver(CallActivity activity, int bufferSize, OnReceiveAudioListener listener) {
         this.mActivity = activity;
         this.mOnReceiveDataListener = listener;
         buffer = new byte[bufferSize];
-        receiveData();
     }
 
-    public void receiveData() {
+    public void receiveData(FlowableEmitter mSubscriber) {
         try {
             if (mReceivingSocket == null) {
                 DatagramChannel mSocketChannel = DatagramChannel.open();
@@ -56,30 +57,20 @@ public class AudioReceiver {
         while (isReceiving /*&& !mActivity.isThreadStopped()*/) {
             try {
                 mReceivingSocket.receive(packet);
-                mOnReceiveDataListener.onReceiveData(packet.getData(), packet.getLength());
+                mSubscriber.onNext(packet);
             } catch (IOException e) {
                 Log.e("VR", "IOException");
                 e.printStackTrace();
                 isReceiving = false;
                 mActivity.setThreadStopped(true);
-                mOnReceiveDataListener.onError();
                 break;
             } catch (Exception e) {
                 e.printStackTrace();
                 mActivity.setThreadStopped(true);
-                mOnReceiveDataListener.onError();
                 isReceiving = false;
                 break;
             }
         }
-    }
-
-    public interface OnReceiveDataListener {
-        void onReceiveData(byte[] data, int length);
-
-        void onReleaseTrack();
-
-        void onError();
     }
 
     public void stopReceiving() {

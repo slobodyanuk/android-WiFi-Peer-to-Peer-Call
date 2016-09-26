@@ -1,5 +1,7 @@
 package com.android.wificall.router.reactive;
 
+import android.util.Log;
+
 import com.android.wificall.data.audio.AudioReader;
 import com.android.wificall.view.activity.CallActivity;
 
@@ -23,7 +25,7 @@ public class ReceiveTask extends BaseTask {
 
     public void updateReceiver() {
         if (mAudioReader != null) {
-            mAudioReader.onReleaseTrack();
+            mAudioReader.onUpdateSubscriber();
         }
     }
 
@@ -33,9 +35,14 @@ public class ReceiveTask extends BaseTask {
         }
     }
 
+    public AudioReader initAudioReader(){
+        return mAudioReader = new AudioReader(mActivity, RECEIVE_BUFFER_SIZE);
+    }
+
     @Override
     protected void executeTask(FlowableEmitter subscribe) {
-        mAudioReader = new AudioReader(mActivity, RECEIVE_BUFFER_SIZE, subscribe);
+        Log.w("tag exec", "executeTask: " + Thread.currentThread());
+        mAudioReader.setSubscriber(subscribe);
         mAudioReader.execute();
     }
 }

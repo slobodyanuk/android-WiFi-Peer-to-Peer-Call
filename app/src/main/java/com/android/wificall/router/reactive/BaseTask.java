@@ -1,5 +1,7 @@
 package com.android.wificall.router.reactive;
 
+import android.util.Log;
+
 import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.schedulers.Schedulers;
@@ -11,7 +13,8 @@ import io.reactivex.subscribers.DefaultSubscriber;
 public abstract class BaseTask<T> {
 
     @SuppressWarnings("unchecked")
-    public void execute(final DefaultSubscriber<byte[]> subscriber) {
+    public void execute(final DefaultSubscriber<T> subscriber) {
+
         Flowable mObservable = createObservable();
         mObservable
                 .subscribeOn(Schedulers.io())
@@ -20,6 +23,7 @@ public abstract class BaseTask<T> {
     }
 
     private Flowable createObservable() {
+        Log.e("create", "return");
         return Flowable.create(e -> executeTask((FlowableEmitter<T>) e), FlowableEmitter.BackpressureMode.BUFFER);
     }
 
