@@ -2,10 +2,12 @@ package com.android.wificall;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ContextWrapper;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 
 import com.android.wificall.view.activity.WifiDirectActivity;
+import com.pixplicity.easyprefs.library.Prefs;
 
 import java.lang.reflect.Method;
 
@@ -20,6 +22,14 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @Override
     public void onCreate() {
         super.onCreate();
+
+        new Prefs.Builder()
+                .setContext(this)
+                .setMode(ContextWrapper.MODE_PRIVATE)
+                .setPrefsName(getPackageName())
+                .setUseDefaultSharedPreference(true)
+                .build();
+
         // Fabric.with(this, new Crashlytics());
         registerActivityLifecycleCallbacks(this);
     }
@@ -62,9 +72,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @Override
     public void onActivityDestroyed(Activity activity) {
         if (activity instanceof WifiDirectActivity) {
-            if (mChannel != null && mManager != null) {
                 deletePersistentGroups();
-            }
         }
     }
 

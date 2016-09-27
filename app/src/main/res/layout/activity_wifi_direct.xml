@@ -1,52 +1,215 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:background="@android:color/white"
     android:orientation="vertical">
 
-    <fragment
-        android:id="@+id/frag_list"
-        class="com.android.wificall.view.fragment.DeviceListFragment"
-        android:layout_width="match_parent"
-        android:layout_height="164dp" />
-
-    <fragment
-        android:id="@+id/frag_detail"
-        class="com.android.wificall.view.fragment.DeviceDetailsFragment"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="0.95" />
-
-    <LinearLayout
+    <android.support.design.widget.AppBarLayout
+        android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:theme="@style/AppTheme.AppBarOverlay">
 
-        <Button
-            android:id="@+id/btn_discover"
-            style="?android:attr/buttonStyleSmall"
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginLeft="5dp"
-            android:text="@string/discover_peers_button" />
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/colorPrimary" />
 
-        <!--<Button-->
-        <!--android:id="@+id/btn_switch"-->
-        <!--style="?android:attr/buttonStyleSmall"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:text="@string/group_chat"/>-->
+    </android.support.design.widget.AppBarLayout>
 
-        <Button
-            android:id="@+id/btn_call"
-            style="?android:attr/buttonStyleSmall"
-            android:layout_marginRight="5dp"
+    <RelativeLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/app_bar_layout">
 
+        <RelativeLayout
+            android:id="@+id/rl_current_device"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/group_call" />
-    </LinearLayout>
-</LinearLayout>
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tv_me_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:text="@string/label_me" />
+
+            <View
+                android:id="@+id/divider_me"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_below="@+id/tv_me_title"
+                android:background="@android:color/holo_blue_light"
+                android:gravity="center_vertical" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/divider_me"
+                android:background="?android:attr/activatedBackgroundIndicator"
+                android:padding="3dip">
+
+                <ImageView
+                    android:id="@+id/icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="2dp"
+                    android:src="@drawable/machine" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBottom="@+id/icon"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignRight="@+id/icon"
+                    android:layout_alignTop="@+id/icon"
+                    android:layout_toEndOf="@+id/icon"
+                    android:layout_toRightOf="@+id/icon"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/my_name"
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical" />
+
+                    <TextView
+                        android:id="@+id/my_status"
+                        android:layout_width="fill_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:ellipsize="marquee"
+                        android:singleLine="true" />
+                </LinearLayout>
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+        <!-- Self information -->
+
+        <RelativeLayout
+            android:id="@+id/rl_peers"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_above="@+id/rl_buttons"
+            android:layout_below="@+id/rl_current_device">
+
+            <TextView
+                android:id="@+id/tv_peers_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:text="@string/label_peers" />
+
+            <View
+                android:id="@+id/divider_peers"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_below="@+id/tv_peers_title"
+                android:background="@android:color/holo_blue_light"
+                android:gravity="center_vertical" />
+
+            <RelativeLayout
+                android:id="@+id/rl_peers_list"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/divider_peers">
+
+                <TextView
+                    android:id="@+id/tv_no_peers"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/empty_message"
+                    android:visibility="visible" />
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone" />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/rl_connection_info"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/divider_peers"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/ll_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_above="@+id/btn_leave"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/device_address"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/device_info"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/group_owner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:id="@+id/group_ip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <android.support.v7.widget.AppCompatButton
+                    android:id="@+id/btn_leave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentBottom="true"
+                    android:layout_centerHorizontal="true"
+                    android:text="Leave group" />
+
+            </RelativeLayout>
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/rl_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/call_button_size"
+            android:layout_alignParentBottom="true">
+
+            <ImageButton
+                android:id="@+id/btn_discover"
+                android:layout_width="@dimen/call_button_size"
+                android:layout_height="@dimen/call_button_size"
+                android:layout_centerInParent="true"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_group" />
+
+            <ImageButton
+                android:id="@+id/btn_call"
+                android:layout_width="@dimen/call_button_size"
+                android:layout_height="@dimen/call_button_size"
+                android:layout_centerInParent="true"
+                android:background="@android:color/transparent"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_call"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+    </RelativeLayout>
+
+</RelativeLayout>

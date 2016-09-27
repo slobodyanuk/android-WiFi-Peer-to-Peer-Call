@@ -22,8 +22,10 @@ import com.android.wificall.router.reactive.ReceiveTask;
 import com.android.wificall.router.reactive.RecordTask;
 import com.android.wificall.util.Globals;
 import com.android.wificall.util.PermissionsUtil;
+import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.util.RetryExecution;
 import com.android.wificall.util.TimeConstants;
+import com.pixplicity.easyprefs.library.Prefs;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -47,7 +49,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     private static int RECORD_BUFFER_SIZE = AudioRecord.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_IN, RECORDER_AUDIO_ENCODING);
     private static int RECEIVE_BUFFER_SIZE = AudioTrack.getMinBufferSize(RECORDER_RATE, RECORDER_CHANNEL_OUT, RECORDER_AUDIO_ENCODING);
 
-    private boolean isGroupOwner;
+    private boolean isGroupOwner = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
 
     @BindView(R.id.call_msg)
     TextView mCallMessage;
@@ -56,10 +58,11 @@ public class CallActivity extends BaseActivity implements RetryExecution {
 
     private RecordTask mRecordTask;
     private ReceiveTask mReceiveTask;
-    private AudioTrack mAudioTrack = null;
 
     private boolean stopThread = false;
     private boolean isUpdating;
+
+    private OnSendAudioListener mSendCallback;
 
     private final Handler mHandler = new Handler();
     private Runnable mUpdateRunnable = new Runnable() {
@@ -71,7 +74,6 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             }
         }
     };
-    private OnSendAudioListener mSendCallback;
 
     @Override
     protected void onStart() {
@@ -96,26 +98,8 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putBoolean("group_owner", WifiDirectActivity.isGroupOwner);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        isGroupOwner = savedInstanceState.getBoolean("group_owner");
-    }
-
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        if (savedInstanceState != null) {
-            isGroupOwner = savedInstanceState.getBoolean("group_owner");
-        } else {
-            isGroupOwner = WifiDirectActivity.isGroupOwner;
-        }
 
         isUpdating = true;
         mHandler.postDelayed(mUpdateRunnable, TimeConstants.SECOND);
@@ -129,7 +113,6 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             mUpdateButton.setVisibility(View.VISIBLE);
         } else {
             mCallMessage.setText(getString(R.string.record_msg));
-            startRecording();
             mUpdateButton.setVisibility(View.GONE);
         }
 
@@ -250,6 +233,11 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             stopReceiving();
             stopRecording();
         }
+    }
+
+    @OnClick(R.id.btn_hang_up)
+    public void hangUp() {
+        finish();
     }
 
     private void stopUpdating() {

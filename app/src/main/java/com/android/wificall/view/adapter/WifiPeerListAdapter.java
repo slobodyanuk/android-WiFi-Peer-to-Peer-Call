@@ -9,9 +9,8 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.android.wificall.R;
-import com.android.wificall.view.fragment.DeviceListFragment;
+import com.android.wificall.util.DeviceUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,7 +42,7 @@ public class WifiPeerListAdapter extends ArrayAdapter<WifiP2pDevice> {
                 top.setText(device.deviceName);
             }
             if (bottom != null) {
-                bottom.setText(DeviceListFragment.getDeviceStatus(device.status));
+                bottom.setText(DeviceUtils.getDeviceStatus(device.status));
             }
         }
         return v;

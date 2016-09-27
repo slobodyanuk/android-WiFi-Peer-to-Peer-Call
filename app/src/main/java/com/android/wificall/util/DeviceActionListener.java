@@ -17,4 +17,8 @@ public interface DeviceActionListener {
 
     void disconnect();
 
+    void onConnected();
+
+    void onDisconnected();
+
 }

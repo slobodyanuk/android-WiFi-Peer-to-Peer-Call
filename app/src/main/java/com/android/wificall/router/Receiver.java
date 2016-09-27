@@ -2,12 +2,12 @@ package com.android.wificall.router;
 
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
-import com.android.wificall.data.event.ActivityEvent;
 import com.android.wificall.data.event.MessageEvent;
+import com.android.wificall.data.event.SomebodyJoinedEvent;
+import com.android.wificall.data.event.SomebodyLeftEvent;
+import com.android.wificall.data.event.UpdateRoomInfoEvent;
 import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.router.tcp.TcpReceiver;
-import com.android.wificall.view.activity.WifiDirectActivity;
-import com.android.wificall.view.fragment.DeviceDetailsFragment;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -22,10 +22,7 @@ public class Receiver implements Runnable {
 
     public static boolean running = false;
 
-    private static WifiDirectActivity activity;
-
-    public Receiver(WifiDirectActivity a) {
-        activity = a;
+    public Receiver() {
         running = true;
     }
 
@@ -33,11 +30,7 @@ public class Receiver implements Runnable {
         final String msg;
         msg = smac + " has joined.";
         final String name = smac;
-        if (activity.isVisible()) {
-            EventBus.getDefault().post(new ActivityEvent(msg, smac, true));
-        } else {
-            EventBus.getDefault().post(new MessageEvent(name, msg));
-        }
+        EventBus.getDefault().post(new SomebodyJoinedEvent());
 
         try {
             AudioSender.addAddress(InetAddress.getByName(ip));
@@ -51,11 +44,7 @@ public class Receiver implements Runnable {
         final String msg;
         msg = smac + " has left.";
         final String name = smac;
-        if (activity.isVisible()) {
-            EventBus.getDefault().post(new ActivityEvent(msg, smac, false));
-        } else {
-            EventBus.getDefault().post(new MessageEvent(name, msg));
-        }
+        EventBus.getDefault().post(new SomebodyLeftEvent());
 
         try {
             AudioSender.removeAddress(InetAddress.getByName(ip));
@@ -65,9 +54,7 @@ public class Receiver implements Runnable {
     }
 
     public static void updatePeerList() {
-        if (activity == null)
-            return;
-        activity.runOnUiThread(DeviceDetailsFragment::updateGroupChatMembersMessage);
+        EventBus.getDefault().post(new UpdateRoomInfoEvent());
     }
 
     @Override
@@ -117,12 +104,7 @@ public class Receiver implements Runnable {
 
                             final String message = emb_mac + " joined the conversation";
                             final String name = p.getSenderMac();
-                            if (activity.isVisible()) {
-                                EventBus.getDefault().post(new ActivityEvent(message));
-                            } else {
-                                EventBus.getDefault().post(new MessageEvent(name, message));
-                            }
-
+                            EventBus.getDefault().post(new MessageEvent(name, message));
                             updatePeerList();
 
                         } else if (p.getType().equals(Packet.TYPE.MESSAGE)) {
@@ -142,11 +124,7 @@ public class Receiver implements Runnable {
                                                 NetworkManager.getSelf().getGroupOwnerMac()));
                             }
 
-                            if (activity.isVisible()) {
-                                EventBus.getDefault().post(new ActivityEvent(message));
-                            } else {
-                                EventBus.getDefault().post(new MessageEvent(name, msg));
-                            }
+                            EventBus.getDefault().post(new MessageEvent(name, msg));
                             updatePeerList();
                         } else if (p.getType().equals(Packet.TYPE.BYE)) {
                             NetworkManager.routingTable.remove(p.getSenderMac());

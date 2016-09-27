@@ -5,4 +5,5 @@
     <color name="colorAccent">#FF4081</color>
     <color name="status_bar_color">#FF000000</color>
     <color name="layout_border_color">#FF111111</color>
+    <color name="ab_title">#ffffff</color>
 </resources>

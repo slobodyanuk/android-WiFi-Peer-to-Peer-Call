@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <TextView
         android:padding="20dp"
@@ -10,23 +10,34 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
-    <!--<Button-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:text="Start"-->
-        <!--android:id="@+id/start"/>-->
+    <!--<android.support.v7.widget.AppCompatButton-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:text="Start"-->
+    <!--android:id="@+id/start"/>-->
 
-    <Button
+    <android.support.v7.widget.AppCompatButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
+        android:layout_below="@+id/call_msg"
         android:text="Update connection"
         android:id="@+id/update"/>
 
-    <!--<Button-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:text="Stop"-->
-        <!--android:id="@+id/stop"/>-->
+    <!--<android.support.v7.widget.AppCompatButton-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:text="Stop"-->
+    <!--android:id="@+id/stop"/>-->
 
-</LinearLayout>
+    <ImageButton
+        android:id="@+id/btn_hang_up"
+        android:layout_width="@dimen/call_button_size"
+        android:layout_height="@dimen/call_button_size"
+        android:src="@drawable/ic_hangup"
+        android:scaleType="centerInside"
+        android:background="@android:color/transparent"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>

@@ -24,17 +24,18 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <Button
+                    <android.support.v7.widget.AppCompatButton
                         android:id="@+id/btn_connect"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/connect_peer_button" />
 
-                    <Button
+                    <android.support.v7.widget.AppCompatButton
                         android:id="@+id/btn_disconnect"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/disconnect_peer_button" />
+                        android:text="@string/disconnect_peer_button"
+                        android:visibility="gone" />
                 </LinearLayout>
 
                 <TextView

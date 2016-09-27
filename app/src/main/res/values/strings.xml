@@ -1,6 +1,14 @@
 <resources>
     <string name="app_name">Wi-Fi Call</string>
 
+    <!--RoleActivity-->
+    <string name="role_speaker">Speaker</string>
+    <string name="role_listener">Listener</string>
+    <string name="role_title">Select role</string>
+
+    <!--FindGroupActivity-->
+    <string name="find_group_title">Find group(%1$s)</string>
+
     <string name="enable_p2p_button">P2P On/Off</string>
     <string name="discover_peers_button">Find a group</string>
     <string name="connect_peer_button">Connect</string>
@@ -16,7 +24,6 @@
     <string name="title_activity_message">MessageActivity</string>
     <string name="p2p_off_warning">Enable P2P/Wifi from system settings</string>
 
-
     <string name="label_connect">Connect</string>
     <string name="label_cancel">Cancel</string>
     <string name="label_ssid">SSID</string>
@@ -25,5 +32,11 @@
     <string name="group_call">Group Call</string>
     <string name="record_msg">Connection is available. Speak now.</string>
     <string name="receive_msg">Connection is available. If you have a some problem with the connection, press this button or connect with the group again.</string>
+
+    <!--showcase-->
+    <string name="showcase_speaker_title">Speaker</string>
+    <string name="showcase_listener_title">Listener</string>
+    <string name="showcase_speaker_text">Select this option if you want to be a group owner. In this case you will be able to translate your voice to another connected group members.</string>
+    <string name="showcase_listener_text">Selecting this option you will be able to listen voice from speaker you will subscribe.</string>
 
 </resources>
