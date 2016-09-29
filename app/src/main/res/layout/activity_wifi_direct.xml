@@ -63,11 +63,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_alignBottom="@+id/icon"
-                    android:layout_alignParentRight="true"
-                    android:layout_alignRight="@+id/icon"
-                    android:layout_alignTop="@+id/icon"
-                    android:layout_toEndOf="@+id/icon"
                     android:layout_toRightOf="@+id/icon"
+                    android:layout_alignTop="@+id/icon"
+                    android:layout_toLeftOf="@+id/btn_leave"
                     android:orientation="vertical">
 
                     <TextView
@@ -85,6 +83,20 @@
                         android:ellipsize="marquee"
                         android:singleLine="true" />
                 </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_leave"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="2dp"
+                    android:layout_marginRight="2dp"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerInParent="true"
+                    android:background="?attr/actionBarItemBackground"
+                    android:src="@drawable/ic_leave_group"/>
+
             </RelativeLayout>
 
         </RelativeLayout>
@@ -171,13 +183,6 @@
 
                 </LinearLayout>
 
-                <android.support.v7.widget.AppCompatButton
-                    android:id="@+id/btn_leave"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentBottom="true"
-                    android:layout_centerHorizontal="true"
-                    android:text="Leave group" />
 
             </RelativeLayout>
 
@@ -194,7 +199,7 @@
                 android:layout_width="@dimen/call_button_size"
                 android:layout_height="@dimen/call_button_size"
                 android:layout_centerInParent="true"
-                android:background="@android:color/transparent"
+                android:background="?attr/actionBarItemBackground"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_group" />
 
@@ -203,8 +208,8 @@
                 android:layout_width="@dimen/call_button_size"
                 android:layout_height="@dimen/call_button_size"
                 android:layout_centerInParent="true"
-                android:background="@android:color/transparent"
                 android:scaleType="centerInside"
+                android:background="?attr/actionBarItemBackground"
                 android:src="@drawable/ic_call"
                 android:visibility="gone" />
 

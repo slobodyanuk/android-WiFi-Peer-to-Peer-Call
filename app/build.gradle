@@ -4,9 +4,9 @@ apply plugin: 'com.neenbedankt.android-apt'
 apply plugin: 'me.tatarka.retrolambda'
 
 def PROJECT_NAME = "WifiVoiceCall"
-def versionMajor = 1
-def versionMinor = 0
-def versionPatch = 0
+def versionMajor = 0
+def versionMinor = 9
+def versionPatch = 9
 def versionBuild = 0
 
 def VERSION_CODE = commitCount()

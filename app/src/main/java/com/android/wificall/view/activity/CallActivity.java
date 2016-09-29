@@ -2,6 +2,7 @@ package com.android.wificall.view.activity;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.os.Build;
@@ -10,20 +11,26 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.android.wificall.R;
 import com.android.wificall.data.event.GroupOwnerEvent;
+import com.android.wificall.data.event.VolumeEvent;
 import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.router.audio.OnReceiveAudioListener;
 import com.android.wificall.router.audio.OnSendAudioListener;
 import com.android.wificall.router.reactive.ReceiveTask;
 import com.android.wificall.router.reactive.RecordTask;
 import com.android.wificall.util.Globals;
+import com.android.wificall.util.MuteUtil;
 import com.android.wificall.util.PermissionsUtil;
 import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.util.RetryExecution;
+import com.android.wificall.util.SettingsContentObserver;
 import com.android.wificall.util.TimeConstants;
 import com.pixplicity.easyprefs.library.Prefs;
 
@@ -54,16 +61,32 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     @BindView(R.id.call_msg)
     TextView mCallMessage;
     @BindView(R.id.update)
-    Button mUpdateButton;
+    ImageButton mUpdateButton;
+    @BindView(R.id.btn_volume)
+    ImageButton mVolumeButton;
+    @BindView(R.id.btn_mute)
+    ImageButton mMuteButton;
+    @BindView(R.id.seekBar)
+    SeekBar mSeekBar;
+    @BindView(R.id.call_container)
+    LinearLayout mCallButtonLayout;
+    @BindView(R.id.micro_container)
+    LinearLayout mMicroButtonLayout;
+    @BindView(R.id.conference)
+    ImageView mConversationLogo;
 
     private RecordTask mRecordTask;
     private ReceiveTask mReceiveTask;
 
     private boolean stopThread = false;
     private boolean isUpdating;
+    private boolean isMute = false;
+    private boolean isVolumeClicked = false;
 
+    private MuteUtil mMuteUtil;
     private OnSendAudioListener mSendCallback;
 
+    private SeekBar.OnSeekBarChangeListener mSeekBarChangeListener;
     private final Handler mHandler = new Handler();
     private Runnable mUpdateRunnable = new Runnable() {
         @Override
@@ -74,6 +97,8 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             }
         }
     };
+    private AudioManager mAudioManager;
+    private SettingsContentObserver mSettingsContentObserver;
 
     @Override
     protected void onStart() {
@@ -88,10 +113,14 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && PermissionsUtil.needRecordAudioPermissions(this)) {
             PermissionsUtil.requestRecordAudioPermission(this);
-        }else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M){
-            if (isGroupOwner){
+        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            if (isGroupOwner) {
                 startRecording();
-            }else{
+            } else {
+                mSettingsContentObserver = new SettingsContentObserver(this,new Handler());
+                getApplicationContext()
+                        .getContentResolver()
+                        .registerContentObserver(android.provider.Settings.System.CONTENT_URI, true, mSettingsContentObserver );
                 initReceivingThread();
             }
         }
@@ -107,13 +136,35 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         if (RECEIVE_BUFFER_SIZE < MIN_BUFFER_SIZE) {
             RECEIVE_BUFFER_SIZE = MIN_BUFFER_SIZE;
         }
+        mMuteUtil = new MuteUtil(this, isGroupOwner);
 
         if (!isGroupOwner) {
+            mVolumeButton.setVisibility(View.VISIBLE);
             mCallMessage.setText(getString(R.string.receive_msg));
             mUpdateButton.setVisibility(View.VISIBLE);
+            mMuteButton.setImageResource(R.drawable.ic_mute_voice);
+            mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            mSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                    mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, i, 0);
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+
+                }
+            };
         } else {
             mCallMessage.setText(getString(R.string.record_msg));
+            mVolumeButton.setVisibility(View.GONE);
             mUpdateButton.setVisibility(View.GONE);
+            mMuteButton.setImageResource(R.drawable.ic_block_microphone);
         }
 
     }
@@ -122,7 +173,13 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     public void onEvent(GroupOwnerEvent event) {
         isGroupOwner = event.isGroupOwner();
         Log.e("TAG", "onEvent: isGroupOwner : " + isGroupOwner);
+    }
 
+    @Subscribe
+    public void onEvent(VolumeEvent event){
+        if (!isGroupOwner && mSeekBar != null && mSeekBar.isEnabled()){
+            mSeekBar.setProgress(event.getVolume());
+        }
     }
 
     private void initReceivingThread() {
@@ -132,7 +189,9 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             mReceiveTask.execute(new DefaultSubscriber<DatagramPacket>() {
                 @Override
                 public void onNext(DatagramPacket packet) {
-                    mReceiveAudioListener.onReceiveData(packet.getData(), packet.getLength());
+                    if (!isMute) {
+                        mReceiveAudioListener.onReceiveData(packet.getData(), packet.getLength());
+                    }
                 }
 
                 @Override
@@ -155,13 +214,40 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         }
     }
 
+    @OnClick(R.id.btn_mute)
+    public void onMuteClick() {
+        isMute = !isMute;
+        mMuteButton.setImageResource(mMuteUtil.initMute(isMute));
+        mConversationLogo.setImageResource(mMuteUtil.initConversationLogo(mCallMessage, mUpdateButton));
+    }
+
+    @OnClick(R.id.btn_volume)
+    public void onVolumeClick() {
+        isVolumeClicked = !isVolumeClicked;
+        if (isVolumeClicked) {
+            mCallButtonLayout.setVisibility(View.GONE);
+            mMicroButtonLayout.setVisibility(View.GONE);
+            mSeekBar.setVisibility(View.VISIBLE);
+            int volume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            mSeekBar.setMax(mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+            mSeekBar.setProgress(volume);
+            mSeekBar.setOnSeekBarChangeListener(mSeekBarChangeListener);
+        } else {
+            mCallButtonLayout.setVisibility(View.VISIBLE);
+            mMicroButtonLayout.setVisibility(View.VISIBLE);
+            mSeekBar.setVisibility(View.GONE);
+        }
+    }
+
     private void startRecording() {
         mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
         mSendCallback = new AudioSender();
         mRecordTask.execute(new DefaultSubscriber<byte[]>() {
             @Override
             public void onNext(byte[] bytes) {
-                mSendCallback.onSendAudioData(bytes);
+                if (!isMute) {
+                    mSendCallback.onSendAudioData(bytes);
+                }
             }
 
             @Override
@@ -220,7 +306,11 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         super.onPause();
         Log.e(TAG, "onPause");
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-
+        if (!isGroupOwner) {
+            getApplicationContext()
+                    .getContentResolver()
+                    .unregisterContentObserver(mSettingsContentObserver);
+        }
         boolean screenOn;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
             screenOn = pm.isInteractive();

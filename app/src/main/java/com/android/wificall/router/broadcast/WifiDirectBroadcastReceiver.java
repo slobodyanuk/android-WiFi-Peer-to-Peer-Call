@@ -20,7 +20,6 @@ import com.android.wificall.router.Configuration;
 import com.android.wificall.router.NetworkManager;
 import com.android.wificall.router.Receiver;
 import com.android.wificall.router.Sender;
-import com.android.wificall.util.ConnectionInfoState;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -31,9 +30,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
 
     private static final String TAG = WifiDirectBroadcastReceiver.class.getCanonicalName();
 
-    public static boolean groupOwner = false;
-
-    private ConnectionInfoState mConnectionInfoState = ConnectionInfoState.UNAVAILABLE;
+    private boolean groupOwner = false;
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
     public static String MAC;
@@ -49,8 +46,9 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
+        Log.e(TAG, "Action ::" + action);
+        Log.e(TAG, "Intent ::" + intent);
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
-
             // UI update to indicate wifi p2p status.
             state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
             EventBus.getDefault().post(new WifiP2PStateChangedEvent(state == WifiP2pManager.WIFI_P2P_STATE_ENABLED));
@@ -65,7 +63,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 return;
             }
 
-            NetworkInfo networkInfo = (NetworkInfo) intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+            NetworkInfo networkInfo = intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
             if (networkInfo.isConnected()) {
                 // we are connected with the other device, request connection
@@ -77,7 +75,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 EventBus.getDefault().post(new DisconnectEvent());
             }
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-            EventBus.getDefault().post(new UpdateDeviceEvent((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)));
+            EventBus.getDefault().post(new UpdateDeviceEvent(intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)));
 
             MAC = ((WifiP2pDevice) intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE)).deviceAddress;
 
@@ -109,7 +107,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
     public void createGroup() {
         // Wifi Direct mode is enabled
         if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-            EventBus.getDefault().post(new WifiP2PStateChangedEvent(true));
+//            EventBus.getDefault().post(new WifiP2PStateChangedEvent(true));
             mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
 
                 @Override
@@ -124,19 +122,18 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                     Log.d(TAG, "P2P Group failed " + reason);
                 }
             });
-        }else {
+        } else {
             isGroupCreated = false;
         }
     }
 
-    public boolean isGroupCreated(){
+    public boolean isGroupCreated() {
         return isGroupCreated;
     }
 
     @Override
     public void onConnectionInfoAvailable(WifiP2pInfo info) {
         EventBus.getDefault().post(new OnConnectInfoObtainedEvent(info));
-        mConnectionInfoState = ConnectionInfoState.AVAILABLE;
         groupOwner = info.isGroupOwner;
         EventBus.getDefault().post(new GroupOwnerEvent(groupOwner));
         Log.e(TAG, "onConnectionInfoAvailable: isGroupOwner : " + groupOwner);

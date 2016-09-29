@@ -13,7 +13,7 @@ import io.reactivex.subscribers.DefaultSubscriber;
 public abstract class BaseTask<T> {
 
     @SuppressWarnings("unchecked")
-    public void execute(final DefaultSubscriber<T> subscriber) {
+    public void execute(DefaultSubscriber<T> subscriber) {
 
         Flowable mObservable = createObservable();
         mObservable

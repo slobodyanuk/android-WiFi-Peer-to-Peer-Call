@@ -8,5 +8,6 @@
 
     <!--general-->
     <dimen name="call_button_size">100dp</dimen>
+    <dimen name="mute_button_size">70dp</dimen>
 
 </resources>

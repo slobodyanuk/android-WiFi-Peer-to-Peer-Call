@@ -104,5 +104,4 @@ public class RoleActivity extends BaseActivity implements View.OnTouchListener {
         return true;
     }
 
-
 }

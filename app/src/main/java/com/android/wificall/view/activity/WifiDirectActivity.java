@@ -14,6 +14,7 @@ import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.RelativeLayout;
@@ -39,6 +40,10 @@ import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.util.DeviceUtils;
 import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.view.adapter.PeersAdapter;
+import com.github.amlcurran.showcaseview.ShowcaseView;
+import com.github.amlcurran.showcaseview.SimpleShowcaseEventListener;
+import com.github.amlcurran.showcaseview.targets.Target;
+import com.github.amlcurran.showcaseview.targets.ViewTarget;
 import com.pixplicity.easyprefs.library.Prefs;
 
 import org.greenrobot.eventbus.EventBus;
@@ -54,7 +59,7 @@ import butterknife.OnClick;
 
 public class WifiDirectActivity extends BaseActivity
         implements WifiP2pManager.ChannelListener, DeviceActionListener,
-        WifiP2pManager.PeerListListener{
+        WifiP2pManager.PeerListListener, View.OnTouchListener{
 
     private static String TAG = WifiDirectActivity.class.getClass().getName();
     private final IntentFilter mIntentFilter = new IntentFilter();
@@ -113,6 +118,7 @@ public class WifiDirectActivity extends BaseActivity
     private ProgressDialog mProgressDialog = null;
     private ProgressDialog mConnectingDialog = null;
     private ProgressDialog mDiscoveringDialog = null;
+    private ShowcaseView mShowcaseView;
 
     @Override
     protected void onStart() {
@@ -123,6 +129,7 @@ public class WifiDirectActivity extends BaseActivity
     @Override
     public void onResume() {
         super.onResume();
+        showLeaveCaseView();
         mReceiver = new WifiDirectBroadcastReceiver(mWifiManager, mWifiChannel);
         registerReceiver(mReceiver, mIntentFilter);
         isVisible = true;
@@ -340,6 +347,50 @@ public class WifiDirectActivity extends BaseActivity
         }
     }
 
+    private void showLeaveCaseView(){
+        Target viewTarget = new ViewTarget(R.id.btn_leave, this);
+        mShowcaseView = new ShowcaseView.Builder(this)
+                .setTarget(viewTarget)
+                .withMaterialShowcase()
+                .setContentTitle(R.string.showcase_leave_title)
+                .setContentText(R.string.showcase_leave_text)
+                .setStyle(R.style.CustomShowcaseTheme2)
+                .blockAllTouches()
+                .singleShot(3)
+                .setShowcaseEventListener(new SimpleShowcaseEventListener() {
+                    @Override
+                    public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
+                        super.onShowcaseViewDidHide(showcaseView);
+                        if (!isSpeaker){
+                            showFindCaseView();
+                        }
+                    }
+                })
+                .build();
+        mShowcaseView.hideButton();
+        mShowcaseView.setOnTouchListener(this);
+    }
+
+    private void showFindCaseView(){
+        Target viewTarget = new ViewTarget(R.id.btn_discover, this);
+        mShowcaseView = new ShowcaseView.Builder(this)
+                .setTarget(viewTarget)
+                .withMaterialShowcase()
+                .setContentTitle(R.string.showcase_finding_title)
+                .setContentText(R.string.showcase_finding_text)
+                .setStyle(R.style.CustomShowcaseTheme2)
+                .blockAllTouches()
+                .singleShot(4)
+                .setShowcaseEventListener(new SimpleShowcaseEventListener() {
+                    @Override
+                    public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
+                        super.onShowcaseViewDidHide(showcaseView);
+                    }
+                })
+                .build();
+        mShowcaseView.hideButton();
+        mShowcaseView.setOnTouchListener(this);
+    }
 
     @Override
     protected int getLayoutResource() {
@@ -551,7 +602,7 @@ public class WifiDirectActivity extends BaseActivity
         Toast.makeText(WifiDirectActivity.this, "wifi state changed event", Toast.LENGTH_SHORT).show();
         setWifiP2pEnabled(event.isEnabled());
         Log.e(TAG, "onEventMainThread: " + Thread.currentThread() );
-        if (needCreateGroup && !mReceiver.isGroupCreated() && !event.isEnabled()){
+        if (needCreateGroup && !mReceiver.isGroupCreated() && event.isEnabled()){
             mReceiver.createGroup();
         }
         if (!event.isEnabled()) {
@@ -594,6 +645,16 @@ public class WifiDirectActivity extends BaseActivity
     public void onEventMainThread(UpdateRoomInfoEvent event) {
         Toast.makeText(WifiDirectActivity.this, "update room info event event", Toast.LENGTH_SHORT).show();
         updateGroupChatMembersMessage();
+    }
+
+    @Override
+    public boolean onTouch(View view, MotionEvent motionEvent) {
+        if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+            if (view instanceof ShowcaseView) {
+                ((ShowcaseView) view).hide();
+            }
+        }
+        return true;
     }
 
     @Override
