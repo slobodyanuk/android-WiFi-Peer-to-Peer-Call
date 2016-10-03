@@ -24,9 +24,9 @@ public class MuteUtil {
     public int initMute(boolean mute) {
         isMuted = mute;
         if (isSpeaker) {
-            return (isMuted) ? R.drawable.ic_microphone : R.drawable.ic_block_microphone;
+            return (isMuted) ? R.drawable.ic_block_microphone : R.drawable.ic_microphone;
         } else {
-            return (isMuted) ? R.drawable.ic_allow_voice : R.drawable.ic_mute_voice;
+            return (isMuted) ? R.drawable.ic_mute_voice : R.drawable.ic_allow_voice;
         }
     }
 

@@ -6,6 +6,7 @@ import android.content.ContextWrapper;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 
+import com.android.wificall.view.activity.RoleActivity;
 import com.android.wificall.view.activity.WifiDirectActivity;
 import com.pixplicity.easyprefs.library.Prefs;
 
@@ -41,7 +42,9 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-
+        if (activity instanceof RoleActivity) {
+            deletePersistentGroups();
+        }
     }
 
     @Override

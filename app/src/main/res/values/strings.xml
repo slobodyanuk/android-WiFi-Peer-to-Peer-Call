@@ -38,10 +38,17 @@
     <string name="showcase_leave_title">Leave this group</string>
     <string name="showcase_listener_title">Listener</string>
     <string name="showcase_finding_title">Finding group</string>
+    <string name="showcase_calling_title">Conversation</string>
+    <string name="showcase_connecting_title">Available peers</string>
+    <string name="showcase_connecting_button_title">Connect</string>
     <string name="showcase_speaker_text">Select this option if you want to be a group owner. In this case you will be able to translate your voice to another connected group members.</string>
     <string name="showcase_leave_text">Select this option if you want to leave from group.</string>
-    <string name="showcase_finding_text">Select this option for find available groups. Press connect button to the group owner from list of available groups, after that you can start conversation.</string>
+    <string name="showcase_finding_text">Select this option to find available peers.</string>
+    <string name="showcase_calling_text">Select this option for start conversation.</string>
+    <string name="showcase_connecting_text">Press any row to start peer-to-peer connecting.</string>
+    <string name="showcase_connecting_button_text">Select this option for start connecting.</string>
     <string name="showcase_listener_text">Selecting this option you will be able to listen voice from speaker you will subscribe.</string>
+
     <string name="record_mute">Microphone muted</string>
     <string name="receive_mute">Audio muted</string>
 

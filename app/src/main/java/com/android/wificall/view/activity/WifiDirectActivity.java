@@ -10,6 +10,7 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -39,9 +40,10 @@ import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.util.DeviceUtils;
 import com.android.wificall.util.PrefsKeys;
+import com.android.wificall.util.ShowCaseUtils;
+import com.android.wificall.util.TimeConstants;
 import com.android.wificall.view.adapter.PeersAdapter;
 import com.github.amlcurran.showcaseview.ShowcaseView;
-import com.github.amlcurran.showcaseview.SimpleShowcaseEventListener;
 import com.github.amlcurran.showcaseview.targets.Target;
 import com.github.amlcurran.showcaseview.targets.ViewTarget;
 import com.pixplicity.easyprefs.library.Prefs;
@@ -57,9 +59,13 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.OnClick;
 
+import static com.android.wificall.util.Globals.CALLING_CASEVIEW_ID;
+import static com.android.wificall.util.Globals.FIND_CASEVIEW_ID;
+import static com.android.wificall.util.Globals.LEAVE_CASEVIEW_ID;
+
 public class WifiDirectActivity extends BaseActivity
         implements WifiP2pManager.ChannelListener, DeviceActionListener,
-        WifiP2pManager.PeerListListener, View.OnTouchListener{
+        WifiP2pManager.PeerListListener, View.OnTouchListener, ShowCaseUtils.CaseViewListener{
 
     private static String TAG = WifiDirectActivity.class.getClass().getName();
     private final IntentFilter mIntentFilter = new IntentFilter();
@@ -120,6 +126,18 @@ public class WifiDirectActivity extends BaseActivity
     private ProgressDialog mDiscoveringDialog = null;
     private ShowcaseView mShowcaseView;
 
+    private final Handler mHandler = new Handler();
+    private boolean isUpdating;
+    private Runnable mUpdateRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isUpdating) {
+                dismissConnectingProgress();
+                mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
+            }
+        }
+    };
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -139,6 +157,8 @@ public class WifiDirectActivity extends BaseActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        isUpdating = true;
+        mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
 
         isSpeaker = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
 
@@ -172,7 +192,7 @@ public class WifiDirectActivity extends BaseActivity
         mRecyclerView.setHasFixedSize(true);
         mLayoutManager = new LinearLayoutManager(getApplicationContext());
         mRecyclerView.setLayoutManager(mLayoutManager);
-        mAdapter = new PeersAdapter(null);
+        mAdapter = new PeersAdapter(this, null);
         mAdapter.setCallback(device -> {
             connect(DeviceUtils.getConfig(device));
             showConnectingProgress(device.deviceAddress);
@@ -280,7 +300,8 @@ public class WifiDirectActivity extends BaseActivity
 
     @Override
     public void connect(WifiP2pConfig config) {
-
+        isUpdating = true;
+        mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
         mWifiManager.connect(mWifiChannel, config, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -313,6 +334,8 @@ public class WifiDirectActivity extends BaseActivity
                         break;
                 }
                 Toast.makeText(WifiDirectActivity.this, reasonStr, Toast.LENGTH_SHORT).show();
+                isUpdating = false;
+                mHandler.removeCallbacksAndMessages(null);
                 hideConnectingProgress();
                 enableWifi();
             }
@@ -349,47 +372,45 @@ public class WifiDirectActivity extends BaseActivity
 
     private void showLeaveCaseView(){
         Target viewTarget = new ViewTarget(R.id.btn_leave, this);
-        mShowcaseView = new ShowcaseView.Builder(this)
-                .setTarget(viewTarget)
-                .withMaterialShowcase()
-                .setContentTitle(R.string.showcase_leave_title)
-                .setContentText(R.string.showcase_leave_text)
-                .setStyle(R.style.CustomShowcaseTheme2)
-                .blockAllTouches()
-                .singleShot(3)
-                .setShowcaseEventListener(new SimpleShowcaseEventListener() {
-                    @Override
-                    public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
-                        super.onShowcaseViewDidHide(showcaseView);
-                        if (!isSpeaker){
-                            showFindCaseView();
-                        }
-                    }
-                })
-                .build();
-        mShowcaseView.hideButton();
-        mShowcaseView.setOnTouchListener(this);
+        new ShowCaseUtils()
+                .showCaseView(
+                        LEAVE_CASEVIEW_ID,
+                        R.string.showcase_leave_title,
+                        R.string.showcase_leave_text,
+                        viewTarget, this);
     }
 
     private void showFindCaseView(){
         Target viewTarget = new ViewTarget(R.id.btn_discover, this);
-        mShowcaseView = new ShowcaseView.Builder(this)
-                .setTarget(viewTarget)
-                .withMaterialShowcase()
-                .setContentTitle(R.string.showcase_finding_title)
-                .setContentText(R.string.showcase_finding_text)
-                .setStyle(R.style.CustomShowcaseTheme2)
-                .blockAllTouches()
-                .singleShot(4)
-                .setShowcaseEventListener(new SimpleShowcaseEventListener() {
-                    @Override
-                    public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
-                        super.onShowcaseViewDidHide(showcaseView);
-                    }
-                })
-                .build();
-        mShowcaseView.hideButton();
-        mShowcaseView.setOnTouchListener(this);
+        new ShowCaseUtils()
+                .showCaseView(
+                        FIND_CASEVIEW_ID,
+                        R.string.showcase_finding_title,
+                        R.string.showcase_finding_text,
+                        viewTarget, this);
+    }
+
+    private void showStartCallingView() {
+        Target viewTarget = new ViewTarget(R.id.btn_call, this);
+        new ShowCaseUtils()
+                .showCaseView(
+                        CALLING_CASEVIEW_ID,
+                        R.string.showcase_calling_title,
+                        R.string.showcase_calling_text,
+                        viewTarget, this);
+    }
+
+    @Override
+    public void onCaseViewDidHide(int id) {
+        switch (id){
+            case LEAVE_CASEVIEW_ID :
+                if (!isSpeaker){
+                    showFindCaseView();
+                }else{
+                    showStartCallingView();
+                }
+                break;
+        }
     }
 
     @Override
@@ -420,6 +441,8 @@ public class WifiDirectActivity extends BaseActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        isUpdating = false;
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     public boolean isVisible() {
@@ -442,6 +465,7 @@ public class WifiDirectActivity extends BaseActivity
         mCallButton.setVisibility(View.VISIBLE);
         rlPeersList.setVisibility(View.GONE);
         rlConnectionInfo.setVisibility(View.VISIBLE);
+        showStartCallingView();
         hideNoPeers();
         hideProgress();
     }
@@ -503,6 +527,13 @@ public class WifiDirectActivity extends BaseActivity
         if (mPeers != null && mPeers.size() > 0) {
             tvNoPeers.setVisibility(View.GONE);
             mRecyclerView.setVisibility(View.VISIBLE);
+//            Target mViewTarget = new ViewTarget(R.id.recycler, this);
+//            new ShowCaseUtils()
+//                    .showCaseView(
+//                            Globals.CONNECTING_CASEVIEW_ID,
+//                            R.string.showcase_connecting_title,
+//                            R.string.showcase_connecting_text,
+//                            mViewTarget, this);
         }
     }
 
@@ -545,13 +576,13 @@ public class WifiDirectActivity extends BaseActivity
         mDiscoveringDialog.show();
     }
 
-    private void showConnectingProgress(String deviceAdress) {
+    private void showConnectingProgress(String deviceAddress) {
         if (mConnectingDialog != null && mConnectingDialog.isShowing()) {
             mConnectingDialog.dismiss();
         }
         mConnectingDialog = new ProgressDialog(this);
         mConnectingDialog.setTitle("Press back to cancel");
-        mConnectingDialog.setMessage("Connecting to :" + deviceAdress);
+        mConnectingDialog.setMessage("Connecting to :" + deviceAddress);
         mConnectingDialog.setButton(ProgressDialog.BUTTON_NEGATIVE, "Cancel", (dialogInterface, i) -> {
             dialogInterface.dismiss();
             cancelDisconnect();
@@ -562,6 +593,13 @@ public class WifiDirectActivity extends BaseActivity
     private void hideConnectingProgress() {
         if (mConnectingDialog != null && mConnectingDialog.isShowing()) {
             mConnectingDialog.hide();
+        }
+    }
+
+    private void dismissConnectingProgress() {
+        if (mConnectingDialog != null && mConnectingDialog.isShowing()) {
+            mConnectingDialog.dismiss();
+            cancelDisconnect();
         }
     }
 
@@ -587,7 +625,9 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(UpdateDeviceEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "update device event", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(WifiDirectActivity.this, "update device event", Toast.LENGTH_SHORT).show();
+        isUpdating = false;
+        mHandler.removeCallbacksAndMessages(null);
         updateThisDevice(event.getDevice());
     }
 
@@ -601,7 +641,6 @@ public class WifiDirectActivity extends BaseActivity
     public void onEventMainThread(WifiP2PStateChangedEvent event) {
         Toast.makeText(WifiDirectActivity.this, "wifi state changed event", Toast.LENGTH_SHORT).show();
         setWifiP2pEnabled(event.isEnabled());
-        Log.e(TAG, "onEventMainThread: " + Thread.currentThread() );
         if (needCreateGroup && !mReceiver.isGroupCreated() && event.isEnabled()){
             mReceiver.createGroup();
         }
@@ -621,7 +660,7 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(OnConnectInfoObtainedEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "connect info obtained event", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(WifiDirectActivity.this, "connect info obtained event", Toast.LENGTH_SHORT).show();
         hideConnectingProgress();
 
         if (!event.getInfo().isGroupOwner) {
@@ -643,7 +682,7 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(UpdateRoomInfoEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "update room info event event", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(WifiDirectActivity.this, "update room info event event", Toast.LENGTH_SHORT).show();
         updateGroupChatMembersMessage();
     }
 
@@ -662,4 +701,5 @@ public class WifiDirectActivity extends BaseActivity
         EventBus.getDefault().unregister(this);
         super.onStop();
     }
+
 }

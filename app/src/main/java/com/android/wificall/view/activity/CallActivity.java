@@ -142,7 +142,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             mVolumeButton.setVisibility(View.VISIBLE);
             mCallMessage.setText(getString(R.string.receive_msg));
             mUpdateButton.setVisibility(View.VISIBLE);
-            mMuteButton.setImageResource(R.drawable.ic_mute_voice);
+            mMuteButton.setImageResource(R.drawable.ic_allow_voice);
             mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
             mSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
                 @Override
@@ -164,7 +164,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             mCallMessage.setText(getString(R.string.record_msg));
             mVolumeButton.setVisibility(View.GONE);
             mUpdateButton.setVisibility(View.GONE);
-            mMuteButton.setImageResource(R.drawable.ic_block_microphone);
+            mMuteButton.setImageResource(R.drawable.ic_microphone);
         }
 
     }

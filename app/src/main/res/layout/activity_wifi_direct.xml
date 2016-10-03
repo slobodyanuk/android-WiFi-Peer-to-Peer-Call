@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="@android:color/white"
+    android:background="@drawable/ic_direct_background"
     android:orientation="vertical">
 
     <android.support.design.widget.AppBarLayout
@@ -158,7 +158,6 @@
                     android:id="@+id/ll_info"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_above="@+id/btn_leave"
                     android:orientation="vertical">
 
                     <TextView
