@@ -7,5 +7,6 @@ public class PrefsKeys {
 
     public static final String FIRST_LAUNCH = "first_launch";
     public static final String IS_SPEAKER = "is_speaker";
+    public static final String IS_CONNECTION_VIEW_SHOW = "is_show";
 
 }

@@ -2,6 +2,7 @@ package com.android.wificall.view.adapter;
 
 import android.app.Activity;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.os.Handler;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +13,7 @@ import com.android.wificall.util.DeviceUtils;
 import com.android.wificall.util.Globals;
 import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.util.ShowCaseUtils;
+import com.android.wificall.util.TimeConstants;
 import com.github.amlcurran.showcaseview.targets.Target;
 import com.github.amlcurran.showcaseview.targets.ViewTarget;
 import com.pixplicity.easyprefs.library.Prefs;
@@ -28,6 +30,8 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
     private int selectedPos = -1;
     private Callback mCallback;
     private Activity mActivity;
+    private Handler handler = new Handler();
+
     private boolean isSpeaker = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
 
     public PeersAdapter(Activity activity, List<WifiP2pDevice> items) {
@@ -114,14 +118,23 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
                 notifyItemChanged(oldPos);
             }
         });
+        if (!Prefs.getBoolean(PrefsKeys.IS_CONNECTION_VIEW_SHOW, false)) {
+            Runnable r = () -> {
+                Target mViewTarget = new ViewTarget(holder.name);
+                new ShowCaseUtils()
+                        .showCaseView(
+                                Globals.CONNECTING_CASEVIEW_ID,
+                                R.string.showcase_connecting_title,
+                                R.string.showcase_connecting_text,
+                                mViewTarget, mActivity);
+                Prefs.putBoolean(PrefsKeys.IS_CONNECTION_VIEW_SHOW, true);
 
-        Target mViewTarget = new ViewTarget(holder.name);
-        new ShowCaseUtils()
-                .showCaseView(
-                        Globals.CONNECTING_CASEVIEW_ID,
-                        R.string.showcase_connecting_title,
-                        R.string.showcase_connecting_text,
-                        mViewTarget, mActivity);
+            };
+            handler.postDelayed(r, TimeConstants.SECOND);
+        }else {
+            handler.removeCallbacksAndMessages(null);
+        }
+
     }
 
     @Override
