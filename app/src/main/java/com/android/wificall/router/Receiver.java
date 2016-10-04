@@ -1,10 +1,14 @@
 package com.android.wificall.router;
 
+import android.util.Log;
+
+import com.android.wificall.data.Address;
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.MessageEvent;
 import com.android.wificall.data.event.SomebodyJoinedEvent;
 import com.android.wificall.data.event.SomebodyLeftEvent;
+import com.android.wificall.data.event.UpdateConnection;
 import com.android.wificall.data.event.UpdateRoomInfoEvent;
 import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.router.tcp.TcpReceiver;
@@ -33,7 +37,7 @@ public class Receiver implements Runnable {
         EventBus.getDefault().post(new SomebodyJoinedEvent());
 
         try {
-            AudioSender.addAddress(InetAddress.getByName(ip));
+            AudioSender.addAddress(new Address(InetAddress.getByName(ip), smac));
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -47,7 +51,7 @@ public class Receiver implements Runnable {
         EventBus.getDefault().post(new SomebodyLeftEvent());
 
         try {
-            AudioSender.removeAddress(InetAddress.getByName(ip));
+            AudioSender.removeAddress(new Address(InetAddress.getByName(ip), smac));
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -126,7 +130,10 @@ public class Receiver implements Runnable {
 
                             EventBus.getDefault().post(new MessageEvent(name, msg));
                             updatePeerList();
-                        } else if (p.getType().equals(Packet.TYPE.BYE)) {
+                        }else if(p.getType().equals(Packet.TYPE.UPDATE_CONNECTION)){
+                            Log.e("receiver", "run:  update");
+                            EventBus.getDefault().post(new UpdateConnection());
+                        }else if (p.getType().equals(Packet.TYPE.BYE)) {
                             NetworkManager.routingTable.remove(p.getSenderMac());
                             somebodyLeft(p.getSenderMac(), p.getSenderIP());
                             updatePeerList();

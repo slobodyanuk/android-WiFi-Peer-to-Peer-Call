@@ -97,7 +97,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
                 if (group != null) {
                     String passphrase = group.getPassphrase();
                     String ssid = group.getNetworkName();
-                    Log.d(TAG, "GROUP INFO AVALABLE");
+                    Log.d(TAG, "GROUP INFO AVALABLE :: isSpeaker " + group.isGroupOwner());
                     Log.d(TAG, " SSID : " + ssid + "\n Passphrase : " + passphrase);
                 }
             });

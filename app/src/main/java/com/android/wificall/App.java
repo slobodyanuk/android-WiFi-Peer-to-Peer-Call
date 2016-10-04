@@ -2,6 +2,7 @@ package com.android.wificall;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.ContextWrapper;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
@@ -36,8 +37,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
     }
 
     public void setWifiManager(WifiP2pManager manager, WifiP2pManager.Channel channel) {
-        this.mManager = manager;
-        this.mChannel = channel;
+//        this.mManager = manager;
+//        this.mChannel = channel;
     }
 
     @Override
@@ -79,8 +80,10 @@ public class App extends Application implements Application.ActivityLifecycleCal
         }
     }
 
-    private void deletePersistentGroups() {
+    public void deletePersistentGroups() {
         try {
+            mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+            mChannel = mManager.initialize(this, getMainLooper(), null);
             Method[] methods = WifiP2pManager.class.getMethods();
             for (int i = 0; i < methods.length; i++) {
                 if (methods[i].getName().equals("deletePersistentGroup")) {

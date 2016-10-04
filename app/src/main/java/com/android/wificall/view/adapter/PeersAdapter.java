@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Created by matviy on 12.09.16.
  */
-public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
+public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> implements ShowCaseUtils.CaseViewListener{
 
     private List<WifiP2pDevice> items;
     private int selectedPos = -1;
@@ -33,6 +33,8 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
     private Handler handler = new Handler();
 
     private boolean isSpeaker = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
+    private boolean isRunning = true;
+    private boolean allowClick = false;
 
     public PeersAdapter(Activity activity, List<WifiP2pDevice> items) {
         this.items = new ArrayList<>();
@@ -78,7 +80,7 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
             holder.btnConnect.setText(isSpeaker ? "invite" : "connect");
         }
 
-        if (selectedPos == position) {
+        if (selectedPos == position && allowClick) {
             holder.highlight();
             holder.tvAddress.setVisibility(View.VISIBLE);
             holder.tvAddress.setText(device.deviceAddress);
@@ -90,12 +92,12 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
             });
 
             Target viewTarget = new ViewTarget(holder.btnConnect);
-            new ShowCaseUtils()
+            new ShowCaseUtils(mActivity)
                     .showCaseView(
                             Globals.CONNECTING_BUTTON_CASEVIEW_ID,
                             R.string.showcase_connecting_button_title,
                             R.string.showcase_connecting_button_text,
-                            viewTarget, mActivity);
+                            viewTarget, this);
 
         } else {
             holder.unhighlight();
@@ -120,22 +122,38 @@ public class PeersAdapter extends RecyclerView.Adapter<PeerHolder> {
         });
         if (!Prefs.getBoolean(PrefsKeys.IS_CONNECTION_VIEW_SHOW, false)) {
             Runnable r = () -> {
-                Target mViewTarget = new ViewTarget(holder.name);
-                new ShowCaseUtils()
-                        .showCaseView(
-                                Globals.CONNECTING_CASEVIEW_ID,
-                                R.string.showcase_connecting_title,
-                                R.string.showcase_connecting_text,
-                                mViewTarget, mActivity);
-                Prefs.putBoolean(PrefsKeys.IS_CONNECTION_VIEW_SHOW, true);
-
+                if (position == 0 && isRunning) {
+                    Target mViewTarget = new ViewTarget(holder.name);
+                    new ShowCaseUtils(mActivity)
+                            .showCaseView(
+                                    Globals.CONNECTING_CASEVIEW_ID,
+                                    R.string.showcase_connecting_title,
+                                    R.string.showcase_connecting_text,
+                                    mViewTarget, this);
+                    Prefs.putBoolean(PrefsKeys.IS_CONNECTION_VIEW_SHOW, true);
+                    isRunning = false;
+                    allowClick = true;
+                }
             };
             handler.postDelayed(r, TimeConstants.SECOND);
         }else {
+            isRunning = false;
+            allowClick = true;
             handler.removeCallbacksAndMessages(null);
         }
 
     }
+
+
+    @Override
+    public void onCaseViewDidHide(int id) {
+        switch (id){
+            case Globals.CONNECTING_CASEVIEW_ID:
+                allowClick = true;
+                break;
+        }
+    }
+
 
     @Override
     public int getItemCount() {

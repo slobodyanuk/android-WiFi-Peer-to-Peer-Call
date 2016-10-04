@@ -7,6 +7,8 @@ public interface OnSendAudioListener {
 
     void onSendAudioData(byte[] data);
 
+    void onUpdateConnection();
+
     void onCompleted();
 
 }

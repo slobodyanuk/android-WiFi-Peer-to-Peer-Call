@@ -20,6 +20,12 @@ public class RecordTask extends BaseTask<byte[]> {
         this.RECORD_BUFFER_SIZE = RECORD_BUFFER_SIZE;
     }
 
+    public void updateRecorder() {
+        if (record != null) {
+            record.onUpdateSubscriber();
+        }
+    }
+
     public void stop() {
         if (record != null) {
             record.stopRecording();

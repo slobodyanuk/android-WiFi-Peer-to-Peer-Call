@@ -14,8 +14,13 @@ import com.github.amlcurran.showcaseview.targets.Target;
 public class ShowCaseUtils {
 
     private ShowcaseView mShowcaseView;
+    private Activity activity;
 
-    public void showCaseView(int id, int title, int text, Target target, Activity activity){
+    public ShowCaseUtils(Activity activity) {
+        this.activity = activity;
+    }
+
+    public void showCaseView(int id, int title, int text, Target target, CaseViewListener listener) {
         mShowcaseView = new ShowcaseView.Builder(activity)
                 .setTarget(target)
                 .withMaterialShowcase()
@@ -23,12 +28,12 @@ public class ShowCaseUtils {
                 .setContentText(text)
                 .setStyle(R.style.CustomShowcaseTheme2)
                 .blockAllTouches()
-                  .singleShot(id)
+                .singleShot(id)
                 .setShowcaseEventListener(new SimpleShowcaseEventListener() {
                     @Override
                     public void onShowcaseViewDidHide(ShowcaseView showcaseView) {
                         super.onShowcaseViewDidHide(showcaseView);
-                        ((CaseViewListener) activity).onCaseViewDidHide(id);
+                        listener.onCaseViewDidHide(id);
                     }
                 })
                 .build();
@@ -36,7 +41,7 @@ public class ShowCaseUtils {
         mShowcaseView.setOnTouchListener((View.OnTouchListener) activity);
     }
 
-    public interface CaseViewListener{
+    public interface CaseViewListener {
         void onCaseViewDidHide(int id);
     }
 

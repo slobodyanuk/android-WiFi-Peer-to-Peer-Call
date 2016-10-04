@@ -27,6 +27,7 @@ import com.android.wificall.R;
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.DisconnectEvent;
+import com.android.wificall.data.event.LeaveGroupEvent;
 import com.android.wificall.data.event.OnConnectInfoObtainedEvent;
 import com.android.wificall.data.event.RequestPeersEvent;
 import com.android.wificall.data.event.SomebodyJoinedEvent;
@@ -39,6 +40,7 @@ import com.android.wificall.router.Sender;
 import com.android.wificall.router.broadcast.WifiDirectBroadcastReceiver;
 import com.android.wificall.util.DeviceActionListener;
 import com.android.wificall.util.DeviceUtils;
+import com.android.wificall.util.Globals;
 import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.util.ShowCaseUtils;
 import com.android.wificall.util.TimeConstants;
@@ -65,7 +67,7 @@ import static com.android.wificall.util.Globals.LEAVE_CASEVIEW_ID;
 
 public class WifiDirectActivity extends BaseActivity
         implements WifiP2pManager.ChannelListener, DeviceActionListener,
-        WifiP2pManager.PeerListListener, View.OnTouchListener, ShowCaseUtils.CaseViewListener{
+        WifiP2pManager.PeerListListener, View.OnTouchListener, ShowCaseUtils.CaseViewListener {
 
     private static String TAG = WifiDirectActivity.class.getClass().getName();
     private final IntentFilter mIntentFilter = new IntentFilter();
@@ -124,7 +126,7 @@ public class WifiDirectActivity extends BaseActivity
     private ProgressDialog mProgressDialog = null;
     private ProgressDialog mConnectingDialog = null;
     private ProgressDialog mDiscoveringDialog = null;
-    private ShowcaseView mShowcaseView;
+    private boolean caseShowed = false;
 
     private final Handler mHandler = new Handler();
     private boolean isUpdating;
@@ -147,11 +149,10 @@ public class WifiDirectActivity extends BaseActivity
     @Override
     public void onResume() {
         super.onResume();
-        showLeaveCaseView();
+//        showLeaveCaseView();
         mReceiver = new WifiDirectBroadcastReceiver(mWifiManager, mWifiChannel);
         registerReceiver(mReceiver, mIntentFilter);
         isVisible = true;
-        Log.e(TAG, "onResume: " + Thread.currentThread() );
     }
 
     @Override
@@ -163,6 +164,8 @@ public class WifiDirectActivity extends BaseActivity
         isSpeaker = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
 
         setTitle(getString(R.string.find_group_title, isSpeaker ? "Speaker" : "Listener"));
+        initRouterSettings();
+        initRecycler();
 
         if (isSpeaker) {
             needCreateGroup = true;
@@ -172,8 +175,6 @@ public class WifiDirectActivity extends BaseActivity
             Toast.makeText(WifiDirectActivity.this, "listener", Toast.LENGTH_SHORT).show();
         }
 
-        initRouterSettings();
-        initRecycler();
     }
 
     private void initRouterSettings() {
@@ -214,7 +215,8 @@ public class WifiDirectActivity extends BaseActivity
 
     @OnClick(R.id.btn_leave)
     public void leave() {
-        Sender.queuePacket(new Packet(Packet.TYPE.BYE, new byte[0], NetworkManager.getSelf().getGroupOwnerMac(),  NetworkManager.getSelf().getMac()));
+        ((App) getApplication()).deletePersistentGroups();
+        Sender.queuePacket(new Packet(Packet.TYPE.BYE, new byte[0], NetworkManager.getSelf().getGroupOwnerMac(), NetworkManager.getSelf().getMac()));
         disconnect();
     }
 
@@ -348,31 +350,29 @@ public class WifiDirectActivity extends BaseActivity
             showProgress();
             mWifiManager.requestGroupInfo(mWifiChannel, group -> {
                 if (group != null && mWifiManager != null && mWifiChannel != null) {
-                    if (!group.isGroupOwner()) {
-                        mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
+                    mWifiManager.removeGroup(mWifiChannel, new WifiP2pManager.ActionListener() {
 
-                            @Override
-                            public void onSuccess() {
-                                Log.d(TAG, "removeGroup onSuccess -");
-                                onDisconnected();
-                            }
+                        @Override
+                        public void onSuccess() {
+                            Log.e(TAG, "removeGroup onSuccess -");
+                            onDisconnected();
+                        }
 
-                            @Override
-                            public void onFailure(int reason) {
-                                Log.d(TAG, "removeGroup onFailure -" + reason);
-                            }
-                        });
-                    }else{
-                        onDisconnected();
-                    }
+                        @Override
+                        public void onFailure(int reason) {
+                            Log.e(TAG, "removeGroup onFailure -" + reason);
+                        }
+                    });
+                } else {
+                    onDisconnected();
                 }
             });
         }
     }
 
-    private void showLeaveCaseView(){
+    private void showLeaveCaseView() {
         Target viewTarget = new ViewTarget(R.id.btn_leave, this);
-        new ShowCaseUtils()
+        new ShowCaseUtils(this)
                 .showCaseView(
                         LEAVE_CASEVIEW_ID,
                         R.string.showcase_leave_title,
@@ -380,21 +380,21 @@ public class WifiDirectActivity extends BaseActivity
                         viewTarget, this);
     }
 
-    private void showFindCaseView(){
+    private void showFindCaseView(int id) {
         Target viewTarget = new ViewTarget(R.id.btn_discover, this);
-        new ShowCaseUtils()
+        new ShowCaseUtils(this)
                 .showCaseView(
-                        FIND_CASEVIEW_ID,
+                        id,
                         R.string.showcase_finding_title,
                         R.string.showcase_finding_text,
                         viewTarget, this);
     }
 
-    private void showStartCallingView() {
+    private void showStartCallingView(int id) {
         Target viewTarget = new ViewTarget(R.id.btn_call, this);
-        new ShowCaseUtils()
+        new ShowCaseUtils(this)
                 .showCaseView(
-                        CALLING_CASEVIEW_ID,
+                        id,
                         R.string.showcase_calling_title,
                         R.string.showcase_calling_text,
                         viewTarget, this);
@@ -402,13 +402,12 @@ public class WifiDirectActivity extends BaseActivity
 
     @Override
     public void onCaseViewDidHide(int id) {
-        switch (id){
-            case LEAVE_CASEVIEW_ID :
-                if (!isSpeaker){
-                    showFindCaseView();
-                }else{
-                    showStartCallingView();
-                }
+        switch (id) {
+            case CALLING_CASEVIEW_ID:
+                showLeaveCaseView();
+                break;
+            case FIND_CASEVIEW_ID:
+                showLeaveCaseView();
                 break;
         }
     }
@@ -465,7 +464,9 @@ public class WifiDirectActivity extends BaseActivity
         mCallButton.setVisibility(View.VISIBLE);
         rlPeersList.setVisibility(View.GONE);
         rlConnectionInfo.setVisibility(View.VISIBLE);
-        showStartCallingView();
+        if (!isSpeaker) {
+            showStartCallingView(Globals.CALLING_SPEAKER_CASEVIEW_ID);
+        }
         hideNoPeers();
         hideProgress();
     }
@@ -476,6 +477,10 @@ public class WifiDirectActivity extends BaseActivity
         mCallButton.setVisibility(View.GONE);
         rlPeersList.setVisibility(View.VISIBLE);
         rlConnectionInfo.setVisibility(View.GONE);
+        if (!isSpeaker && !caseShowed) {
+            showFindCaseView(Globals.FIND_SPEAKER_CASEVIEW_ID);
+            caseShowed = true;
+        }
         showNoPeers();
         hideProgress();
     }
@@ -527,13 +532,6 @@ public class WifiDirectActivity extends BaseActivity
         if (mPeers != null && mPeers.size() > 0) {
             tvNoPeers.setVisibility(View.GONE);
             mRecyclerView.setVisibility(View.VISIBLE);
-//            Target mViewTarget = new ViewTarget(R.id.recycler, this);
-//            new ShowCaseUtils()
-//                    .showCaseView(
-//                            Globals.CONNECTING_CASEVIEW_ID,
-//                            R.string.showcase_connecting_title,
-//                            R.string.showcase_connecting_text,
-//                            mViewTarget, this);
         }
     }
 
@@ -593,6 +591,7 @@ public class WifiDirectActivity extends BaseActivity
     private void hideConnectingProgress() {
         if (mConnectingDialog != null && mConnectingDialog.isShowing()) {
             mConnectingDialog.hide();
+
         }
     }
 
@@ -623,9 +622,15 @@ public class WifiDirectActivity extends BaseActivity
         context.startActivity(intent);
     }
 
+    @Subscribe
+    public void onEvent(LeaveGroupEvent event) {
+        if (!isSpeaker) {
+            leave();
+        }
+    }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(UpdateDeviceEvent event) {
-//        Toast.makeText(WifiDirectActivity.this, "update device event", Toast.LENGTH_SHORT).show();
         isUpdating = false;
         mHandler.removeCallbacksAndMessages(null);
         updateThisDevice(event.getDevice());
@@ -633,15 +638,13 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(DisconnectEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "disconnect event", Toast.LENGTH_SHORT).show();
         resetData();
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(WifiP2PStateChangedEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "wifi state changed event", Toast.LENGTH_SHORT).show();
         setWifiP2pEnabled(event.isEnabled());
-        if (needCreateGroup && !mReceiver.isGroupCreated() && event.isEnabled()){
+        if (needCreateGroup && !mReceiver.isGroupCreated() && event.isEnabled()) {
             mReceiver.createGroup();
         }
         if (!event.isEnabled()) {
@@ -651,7 +654,6 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(RequestPeersEvent event) {
-        Toast.makeText(WifiDirectActivity.this, "request peers event", Toast.LENGTH_SHORT).show();
         if (mWifiManager != null && mWifiChannel != null) {
             mWifiManager.requestPeers(mWifiChannel, this);
         }
@@ -660,14 +662,24 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(OnConnectInfoObtainedEvent event) {
-//        Toast.makeText(WifiDirectActivity.this, "connect info obtained event", Toast.LENGTH_SHORT).show();
         hideConnectingProgress();
 
         if (!event.getInfo().isGroupOwner) {
             Sender.queuePacket(new Packet(Packet.TYPE.HELLO, new byte[0], null, WifiDirectBroadcastReceiver.MAC));
         }
 
-        onConnected();
+        if (NetworkManager.routingTable.size() <= 1 && !isSpeaker) {
+            //only this device in this group
+            disconnect();
+        } else {
+            onConnected();
+        }
+
+        if (isSpeaker) {
+            showStartCallingView(Globals.CALLING_CASEVIEW_ID);
+        } else {
+            showFindCaseView(Globals.FIND_SPEAKER_CASEVIEW_ID);
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -682,7 +694,6 @@ public class WifiDirectActivity extends BaseActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(UpdateRoomInfoEvent event) {
-//        Toast.makeText(WifiDirectActivity.this, "update room info event event", Toast.LENGTH_SHORT).show();
         updateGroupChatMembersMessage();
     }
 

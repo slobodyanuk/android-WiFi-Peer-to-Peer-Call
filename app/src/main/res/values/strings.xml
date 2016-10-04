@@ -30,7 +30,7 @@
 
     <string name="group_chat">Group Chat</string>
     <string name="group_call">Group Call</string>
-    <string name="record_msg">Connection is available. Speak now.</string>
+    <string name="record_msg">Connection is available. Speak now. If you have a some problem with the connection, press this button or connect with the group again.</string>
     <string name="receive_msg">Connection is available. If you have a some problem with the connection, press this button or connect with the group again.</string>
 
     <!--showcase-->

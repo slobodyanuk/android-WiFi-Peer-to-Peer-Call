@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.android.wificall.R;
 import com.android.wificall.data.event.GroupOwnerEvent;
+import com.android.wificall.data.event.UpdateConnection;
 import com.android.wificall.data.event.VolumeEvent;
 import com.android.wificall.router.audio.AudioSender;
 import com.android.wificall.router.audio.OnReceiveAudioListener;
@@ -91,7 +92,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     private Runnable mUpdateRunnable = new Runnable() {
         @Override
         public void run() {
-            if (isUpdating && !isGroupOwner) {
+            if (isUpdating) {
                 onUpdateClick();
                 mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
             }
@@ -99,6 +100,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     };
     private AudioManager mAudioManager;
     private SettingsContentObserver mSettingsContentObserver;
+    private boolean isRecording = false;
 
     @Override
     protected void onStart() {
@@ -113,16 +115,15 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         if (isGroupOwner && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && PermissionsUtil.needRecordAudioPermissions(this)) {
             PermissionsUtil.requestRecordAudioPermission(this);
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            if (isGroupOwner) {
-                startRecording();
-            } else {
-                mSettingsContentObserver = new SettingsContentObserver(this,new Handler());
-                getApplicationContext()
-                        .getContentResolver()
-                        .registerContentObserver(android.provider.Settings.System.CONTENT_URI, true, mSettingsContentObserver );
-                initReceivingThread();
-            }
+        }
+        if (isGroupOwner) {
+            if (!isRecording) startRecording();
+        } else {
+            mSettingsContentObserver = new SettingsContentObserver(this, new Handler());
+            getApplicationContext()
+                    .getContentResolver()
+                    .registerContentObserver(android.provider.Settings.System.CONTENT_URI, true, mSettingsContentObserver);
+            initReceivingThread();
         }
     }
 
@@ -137,11 +138,11 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             RECEIVE_BUFFER_SIZE = MIN_BUFFER_SIZE;
         }
         mMuteUtil = new MuteUtil(this, isGroupOwner);
+        mUpdateButton.setVisibility(View.VISIBLE);
 
         if (!isGroupOwner) {
             mVolumeButton.setVisibility(View.VISIBLE);
             mCallMessage.setText(getString(R.string.receive_msg));
-            mUpdateButton.setVisibility(View.VISIBLE);
             mMuteButton.setImageResource(R.drawable.ic_allow_voice);
             mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
             mSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
@@ -163,7 +164,6 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         } else {
             mCallMessage.setText(getString(R.string.record_msg));
             mVolumeButton.setVisibility(View.GONE);
-            mUpdateButton.setVisibility(View.GONE);
             mMuteButton.setImageResource(R.drawable.ic_microphone);
         }
 
@@ -176,10 +176,42 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     }
 
     @Subscribe
-    public void onEvent(VolumeEvent event){
-        if (!isGroupOwner && mSeekBar != null && mSeekBar.isEnabled()){
+    public void onEvent(VolumeEvent event) {
+        if (!isGroupOwner && mSeekBar != null && mSeekBar.isEnabled()) {
             mSeekBar.setProgress(event.getVolume());
         }
+    }
+
+    @Subscribe
+    public void onEvent(UpdateConnection event) {
+        onUpdateClick();
+    }
+
+    private void startRecording() {
+        isRecording = true;
+        mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
+        mSendCallback = new AudioSender();
+        mRecordTask.execute(new DefaultSubscriber<byte[]>() {
+            @Override
+            public void onNext(byte[] bytes) {
+                if (!isMute) {
+                    mSendCallback.onSendAudioData(bytes);
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                Log.d(TAG, "onUpdateSubscriber: " + t);
+            }
+
+            @Override
+            public void onComplete() {
+                Log.e(TAG, "onComplete: ");
+                mSendCallback.onCompleted();
+            }
+        });
+
+        stopThread = false;
     }
 
     private void initReceivingThread() {
@@ -209,8 +241,15 @@ public class CallActivity extends BaseActivity implements RetryExecution {
 
     @OnClick(R.id.update)
     public void onUpdateClick() {
-        if (mReceiveTask != null) {
-            mReceiveTask.updateReceiver();
+        if (!isGroupOwner) {
+            if (mReceiveTask != null) {
+                mReceiveTask.updateReceiver();
+            }
+        } else {
+            if (mRecordTask != null) {
+                mRecordTask.updateRecorder();
+                mSendCallback.onUpdateConnection();
+            }
         }
     }
 
@@ -239,32 +278,6 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         }
     }
 
-    private void startRecording() {
-        mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
-        mSendCallback = new AudioSender();
-        mRecordTask.execute(new DefaultSubscriber<byte[]>() {
-            @Override
-            public void onNext(byte[] bytes) {
-                if (!isMute) {
-                    mSendCallback.onSendAudioData(bytes);
-                }
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                Log.d(TAG, "onUpdateSubscriber: " + t);
-            }
-
-            @Override
-            public void onComplete() {
-                Log.d(TAG, "onComplete: ");
-                mSendCallback.onCompleted();
-            }
-        });
-
-        stopThread = false;
-    }
-
     public boolean isThreadStopped() {
         return stopThread;
     }
@@ -277,6 +290,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         if (mRecordTask != null) {
             mRecordTask.stop();
             stopThread = true;
+            isRecording = false;
         }
     }
 
@@ -292,7 +306,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == Globals.REQUEST_RECORD_AUDIO) {
             if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                startRecording();
+                if (!isRecording) startRecording();
             } else {
                 finish();
             }
@@ -348,6 +362,10 @@ public class CallActivity extends BaseActivity implements RetryExecution {
 
     @Override
     public void onRetryExecution() {
-        initReceivingThread();
+        if (isGroupOwner) {
+            startRecording();
+        } else {
+            initReceivingThread();
+        }
     }
 }

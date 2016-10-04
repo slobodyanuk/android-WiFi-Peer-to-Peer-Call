@@ -1,6 +1,5 @@
 package com.android.wificall.data.audio;
 
-import android.content.Context;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
@@ -51,10 +50,6 @@ public class AudioReader implements OnReceiveAudioListener {
                 RECORDER_AUDIO_ENCODING,
                 RECEIVE_BUFFER_SIZE * 2,
                 AudioTrack.MODE_STREAM);
-
-        AudioManager mAudioManager = (AudioManager) mActivity.getSystemService(Context.AUDIO_SERVICE);
-        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 30, 0);
-        mAudioManager.setParameters("noise_suppression=auto");
 
         mAudioTrack.play();
         mAudioReceiver.receiveData(mSubscriber);
