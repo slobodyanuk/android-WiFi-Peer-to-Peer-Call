@@ -1,5 +1,7 @@
 package com.android.wificall.router;
 
+import android.util.Log;
+
 import com.android.wificall.data.Client;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +20,10 @@ public class NetworkManager {
     }
 
     public static void clientGone(Client c) {
-        routingTable.remove(c.getMac());
+        if (c != null) {
+            Log.e("Manager", "clientGone: " + c);
+            routingTable.remove(c.getMac());
+        }
     }
 
     public static Client getSelf() {

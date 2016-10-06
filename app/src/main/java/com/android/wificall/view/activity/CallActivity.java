@@ -368,4 +368,15 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             initReceivingThread();
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        if (!isGroupOwner) {
+            if (isVolumeClicked) {
+                onVolumeClick();
+                return;
+            }
+        }
+        super.onBackPressed();
+    }
 }

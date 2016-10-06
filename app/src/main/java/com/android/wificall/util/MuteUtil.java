@@ -31,6 +31,7 @@ public class MuteUtil {
     }
 
     public int initConversationLogo(TextView textView, ImageButton imageButton){
+        imageButton.setVisibility((isMuted) ? View.GONE : View.VISIBLE);
         if (isSpeaker) {
             textView.setText((isMuted)
                     ? mActivity.getString(R.string.record_mute)
@@ -39,7 +40,6 @@ public class MuteUtil {
                     ? R.drawable.ic_microphone_off
                     : R.drawable.ic_people_conference;
         } else {
-            imageButton.setVisibility((isMuted) ? View.GONE : View.VISIBLE);
             textView.setText((isMuted)
                     ? mActivity.getString(R.string.receive_mute)
                     : mActivity.getString(R.string.receive_msg));

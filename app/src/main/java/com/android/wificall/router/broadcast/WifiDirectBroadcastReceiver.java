@@ -47,7 +47,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         Log.e(TAG, "Action ::" + action);
-        Log.e(TAG, "Intent ::" + intent);
+
         if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
             // UI update to indicate wifi p2p status.
             state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
@@ -105,9 +105,7 @@ public class WifiDirectBroadcastReceiver extends BroadcastReceiver implements Wi
     }
 
     public void createGroup() {
-        // Wifi Direct mode is enabled
         if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-//            EventBus.getDefault().post(new WifiP2PStateChangedEvent(true));
             mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
 
                 @Override

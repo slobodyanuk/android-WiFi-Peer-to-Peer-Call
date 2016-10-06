@@ -5,6 +5,7 @@ import android.util.Log;
 import com.android.wificall.data.Address;
 import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
+import com.android.wificall.data.event.MembersEvent;
 import com.android.wificall.data.event.MessageEvent;
 import com.android.wificall.data.event.SomebodyJoinedEvent;
 import com.android.wificall.data.event.SomebodyLeftEvent;
@@ -49,7 +50,7 @@ public class Receiver implements Runnable {
         msg = smac + " has left.";
         final String name = smac;
         EventBus.getDefault().post(new SomebodyLeftEvent());
-
+        NetworkManager.clientGone(NetworkManager.routingTable.get(smac));
         try {
             AudioSender.removeAddress(new Address(InetAddress.getByName(ip), smac));
         } catch (UnknownHostException e) {
@@ -137,6 +138,9 @@ public class Receiver implements Runnable {
                             NetworkManager.routingTable.remove(p.getSenderMac());
                             somebodyLeft(p.getSenderMac(), p.getSenderIP());
                             updatePeerList();
+                        }else if(p.getType().equals(Packet.TYPE.MEMBERS)){
+                            Log.e("receiver", "run:  members");
+                            EventBus.getDefault().post(new MembersEvent(p));
                         } else {
                             // otherwise forward it if you're not the recipient
                             int ttl = p.getTtl();

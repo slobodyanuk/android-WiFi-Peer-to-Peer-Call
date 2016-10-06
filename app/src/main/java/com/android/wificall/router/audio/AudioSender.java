@@ -16,6 +16,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Serhii Slobodyanuk on 02.09.2016.
@@ -23,9 +26,10 @@ import java.util.ArrayList;
 public class AudioSender implements OnSendAudioListener {
 
     private static final String TAG = AudioSender.class.getCanonicalName();
-    private static ArrayList<Address> mAddresses = new ArrayList<>();
+    private static List<Address> mAddresses = new ArrayList<>();
     private DatagramSocket mSendingSocket = null;
     private boolean isUpdate = false;
+    private DatagramPacket mPacket;
 
     public AudioSender() {
         initSocket();
@@ -44,6 +48,8 @@ public class AudioSender implements OnSendAudioListener {
 
         try {
             mSendingSocket = new DatagramSocket();
+            mPacket = new DatagramPacket(new byte[0], 0);
+
         } catch (SocketException e) {
             e.printStackTrace();
             return;
@@ -61,15 +67,12 @@ public class AudioSender implements OnSendAudioListener {
 
     public static void addAddress(Address address) {
         if (mAddresses != null) {
-            if (mAddresses.size() == 0) {
-                mAddresses.add(address);
-            }
-            for (Address tmp : mAddresses) {
-                if (!address.getMac().equals(tmp.getMac())) {
-                    mAddresses.add(address);
-                    Log.e("addAddress", String.valueOf(mAddresses.size()));
-                }
-            }
+            Set<Address> set = new HashSet<>();
+            mAddresses.add(address);
+            set.addAll(mAddresses);
+            mAddresses.clear();
+            mAddresses.addAll(set);
+            Log.e(TAG, "addAddress: " + mAddresses.size());
         }
     }
 
@@ -85,7 +88,6 @@ public class AudioSender implements OnSendAudioListener {
 
     @Override
     public void onSendAudioData(byte[] data) {
-        DatagramPacket packet = new DatagramPacket(data, data.length);
         for (int i = 0; i < mAddresses.size(); i++) {
             try {
                 if (isUpdate) {
@@ -95,12 +97,12 @@ public class AudioSender implements OnSendAudioListener {
                             .getMac());
                     Sender.queuePacket(ack);
                 }
-                packet.setAddress(mAddresses.get(i).getInetAddress());
-                packet.setData(data);
-                packet.setLength(data.length);
-                packet.setPort(Configuration.RECEIVE_PORT);
+                mPacket.setAddress(mAddresses.get(i).getInetAddress());
+                mPacket.setData(data);
+                mPacket.setLength(data.length);
+                mPacket.setPort(Configuration.RECEIVE_PORT);
                 if (mSendingSocket != null) {
-                    mSendingSocket.send(packet);
+                    mSendingSocket.send(mPacket);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

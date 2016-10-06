@@ -3,11 +3,11 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.neenbedankt.android-apt'
 apply plugin: 'me.tatarka.retrolambda'
 
-def PROJECT_NAME = "WifiVoiceCall"
+def PROJECT_NAME = "WifiCall"
 def versionMajor = 1
 def versionMinor = 0
-def versionPatch = 0
-def versionBuild = 2
+def versionPatch = 1
+def versionBuild = 0
 
 def VERSION_CODE = commitCount()
 def VERSION_NAME = "${versionMajor}.${versionMinor}.${versionPatch}.${versionBuild}"
@@ -30,7 +30,7 @@ def APK_NAME = PROJECT_NAME + "-" + VERSION_NAME + ".apk"
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24.0.1"
+    buildToolsVersion "24.0.2"
 
     defaultConfig {
         applicationId "com.android.wificall"

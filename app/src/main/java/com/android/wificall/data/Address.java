@@ -22,15 +22,21 @@ public class Address {
     public String getMac() {
         return mac;
     }
+
     @Override
-    public boolean equals(final Object obj) {
-        if (obj == null || obj == this || !(obj instanceof Address))
-            return false;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Address)) return false;
 
-        Address otherCard = (Address) obj;
+        Address address = (Address) o;
 
-        return otherCard.mInetAddress == this.mInetAddress && otherCard.mac.equals(this.mac);
+        if (!mInetAddress.equals(address.mInetAddress)) return false;
+        return mac.equals(address.mac);
 
     }
 
+    @Override
+    public int hashCode() {
+        return mac.hashCode();
+    }
 }

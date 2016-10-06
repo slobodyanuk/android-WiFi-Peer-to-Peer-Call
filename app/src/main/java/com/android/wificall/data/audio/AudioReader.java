@@ -26,13 +26,11 @@ public class AudioReader implements OnReceiveAudioListener {
     private int RECEIVE_BUFFER_SIZE;
 
     private AudioTrack mAudioTrack;
-    private CallActivity mActivity;
     private AudioReceiver mAudioReceiver;
     private FlowableEmitter mSubscriber;
     private RetryExecution mRetryExecutionListener;
 
     public AudioReader(CallActivity mActivity, int receive_buffer_size) {
-        this.mActivity = mActivity;
         RECEIVE_BUFFER_SIZE = receive_buffer_size;
         mAudioReceiver = new  AudioReceiver(mActivity, RECEIVE_BUFFER_SIZE, this);
         mRetryExecutionListener = mActivity;

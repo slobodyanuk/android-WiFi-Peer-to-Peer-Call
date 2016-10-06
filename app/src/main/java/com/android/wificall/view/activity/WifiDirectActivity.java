@@ -18,6 +18,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +45,7 @@ import com.android.wificall.util.Globals;
 import com.android.wificall.util.PrefsKeys;
 import com.android.wificall.util.ShowCaseUtils;
 import com.android.wificall.util.TimeConstants;
+import com.android.wificall.view.adapter.ClientsAdapter;
 import com.android.wificall.view.adapter.PeersAdapter;
 import com.github.amlcurran.showcaseview.ShowcaseView;
 import com.github.amlcurran.showcaseview.targets.Target;
@@ -95,8 +97,10 @@ public class WifiDirectActivity extends BaseActivity
     //connection info
     @BindView(R.id.rl_connection_info)
     RelativeLayout rlConnectionInfo;
-    @BindView(R.id.device_address)
-    TextView tvDeviceAddress;
+    @BindView(R.id.list_client)
+    ListView lvClients;
+    @BindView(R.id.client_title)
+    TextView tvClientTitle;
     @BindView(R.id.device_info)
     TextView tvDeviceInfo;
     @BindView(R.id.group_owner)
@@ -122,6 +126,8 @@ public class WifiDirectActivity extends BaseActivity
     //peers list fragment
     private List<WifiP2pDevice> mPeers = new ArrayList<>();
     private List<WifiP2pDevice> mGroupOwners = new ArrayList<>();
+    private ClientsAdapter mClientsAdapter;
+    String mRoomText = "Currently in this room: \n";
 
     private ProgressDialog mProgressDialog = null;
     private ProgressDialog mConnectingDialog = null;
@@ -139,6 +145,7 @@ public class WifiDirectActivity extends BaseActivity
             }
         }
     };
+    private boolean isConnectClick = false;
 
     @Override
     protected void onStart() {
@@ -160,7 +167,7 @@ public class WifiDirectActivity extends BaseActivity
         super.onCreate(savedInstanceState);
         isUpdating = true;
         mHandler.postDelayed(mUpdateRunnable, TimeConstants.THRITY_SECONDS);
-
+        isConnectClick = false;
         isSpeaker = Prefs.getBoolean(PrefsKeys.IS_SPEAKER, false);
 
         setTitle(getString(R.string.find_group_title, isSpeaker ? "Speaker" : "Listener"));
@@ -171,6 +178,7 @@ public class WifiDirectActivity extends BaseActivity
             needCreateGroup = true;
             Toast.makeText(WifiDirectActivity.this, "speaker", Toast.LENGTH_SHORT).show();
         } else {
+            disconnect();
             needCreateGroup = false;
             Toast.makeText(WifiDirectActivity.this, "listener", Toast.LENGTH_SHORT).show();
         }
@@ -195,6 +203,7 @@ public class WifiDirectActivity extends BaseActivity
         mRecyclerView.setLayoutManager(mLayoutManager);
         mAdapter = new PeersAdapter(this, null);
         mAdapter.setCallback(device -> {
+            isConnectClick = true;
             connect(DeviceUtils.getConfig(device));
             showConnectingProgress(device.deviceAddress);
         });
@@ -467,6 +476,7 @@ public class WifiDirectActivity extends BaseActivity
         if (!isSpeaker) {
             showStartCallingView(Globals.CALLING_SPEAKER_CASEVIEW_ID);
         }
+        updateGroupChatMembersMessage();
         hideNoPeers();
         hideProgress();
     }
@@ -603,12 +613,53 @@ public class WifiDirectActivity extends BaseActivity
     }
 
     public void updateGroupChatMembersMessage() {
-        if (tvDeviceAddress != null) {
-            String s = "Currently in this room: \n";
-            for (Client c : NetworkManager.routingTable.values()) {
-                s += c.getName() + "\n";
+        if (lvClients != null) {
+            if (isSpeaker) {
+                mWifiManager.requestGroupInfo(mWifiChannel, group -> {
+                    if (group != null) {
+                        int count = group.getClientList().size() + 1;
+                        String[] values = new String[count];
+                        int i = 0;
+                        for (WifiP2pDevice device : group.getClientList()) {
+                            if (device.deviceName.equals("")) {
+                                values[i] = device.deviceAddress;
+                            } else {
+                                values[i] = device.deviceName;
+                            }
+                            i++;
+                        }
+                        if (group.getOwner().deviceName.equals("")) {
+                            if (tvCurrentName != null) {
+                                values[count - 1] = String.valueOf(tvCurrentName.getText());
+                            } else {
+                                values[count - 1] = group.getOwner().deviceAddress;
+                            }
+                        } else {
+                            values[count - 1] = group.getOwner().deviceName;
+                        }
+                        tvClientTitle.setText("Currently in this room (" + count + "): ");
+                        tvClientTitle.setVisibility(View.VISIBLE);
+                        mClientsAdapter = new ClientsAdapter(this, values);
+                        lvClients.setAdapter(mClientsAdapter);
+                    }
+                });
+            } else {
+                int count = NetworkManager.routingTable.size();
+                String[] values = new String[count];
+                int i = 0;
+                tvClientTitle.setText("Currently in this room (" + count + "): ");
+                if (count == 0) {
+                    tvClientTitle.setVisibility(View.GONE);
+                } else {
+                    tvClientTitle.setVisibility(View.VISIBLE);
+                }
+                for (Client c : NetworkManager.routingTable.values()) {
+                    values[i] = c.getMac();
+                    i++;
+                }
+                mClientsAdapter = new ClientsAdapter(this, values);
+                lvClients.setAdapter(mClientsAdapter);
             }
-            tvDeviceAddress.setText(s);
         }
     }
 
@@ -635,6 +686,7 @@ public class WifiDirectActivity extends BaseActivity
         mHandler.removeCallbacksAndMessages(null);
         updateThisDevice(event.getDevice());
     }
+
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(DisconnectEvent event) {
@@ -668,8 +720,7 @@ public class WifiDirectActivity extends BaseActivity
             Sender.queuePacket(new Packet(Packet.TYPE.HELLO, new byte[0], null, WifiDirectBroadcastReceiver.MAC));
         }
 
-        if (NetworkManager.routingTable.size() <= 1 && !isSpeaker) {
-            //only this device in this group
+        if (!isSpeaker && !isConnectClick) {
             disconnect();
         } else {
             onConnected();
