@@ -191,8 +191,8 @@ public class WifiDirectActivity extends BaseActivity
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        mWifiManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mWifiNetworkManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        mWifiManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mWifiChannel = mWifiManager.initialize(this, getMainLooper(), null);
         ((App) getApplication()).setWifiManager(mWifiManager, mWifiChannel);
     }
@@ -700,6 +700,7 @@ public class WifiDirectActivity extends BaseActivity
             mReceiver.createGroup();
         }
         if (!event.isEnabled()) {
+            leave();
             resetData();
         }
     }

@@ -36,7 +36,6 @@ public class Receiver implements Runnable {
         msg = smac + " has joined.";
         final String name = smac;
         EventBus.getDefault().post(new SomebodyJoinedEvent());
-
         try {
             AudioSender.addAddress(new Address(InetAddress.getByName(ip), smac));
         } catch (UnknownHostException e) {
@@ -50,7 +49,8 @@ public class Receiver implements Runnable {
         msg = smac + " has left.";
         final String name = smac;
         EventBus.getDefault().post(new SomebodyLeftEvent());
-        NetworkManager.clientGone(NetworkManager.routingTable.get(smac));
+        NetworkManager.clientGone(smac);
+        NetworkManager.routingTable.remove(smac);
         try {
             AudioSender.removeAddress(new Address(InetAddress.getByName(ip), smac));
         } catch (UnknownHostException e) {

@@ -1,5 +1,7 @@
 package com.android.wificall.router.audio;
 
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.util.Log;
 
 import com.android.wificall.data.Address;
@@ -72,7 +74,27 @@ public class AudioSender implements OnSendAudioListener {
             set.addAll(mAddresses);
             mAddresses.clear();
             mAddresses.addAll(set);
-            Log.e(TAG, "addAddress: " + mAddresses.size());
+            Log.e(TAG, "addAddress: " + mAddresses.size() + " :: "  + mAddresses.toString());
+        }
+    }
+
+    private void updateAddresses(List<String> addresses){
+        if (mAddresses != null) {
+            boolean found = false;
+            for(int i = 0; i < mAddresses.size(); i++){
+                for(String object2: addresses){
+                    if(mAddresses.get(i).getMac().equals(object2)){
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    mAddresses.remove(i);
+                }
+                found = false;
+            }
+            Log.e(TAG, "update addresses: " + mAddresses.size() + " :: "  + mAddresses);
+
         }
     }
 
@@ -83,6 +105,7 @@ public class AudioSender implements OnSendAudioListener {
                     mAddresses.remove(i);
                 }
             }
+            Log.e(TAG, "removeAddress: " + mAddresses.size() + " :: "  + mAddresses.toString());
         }
     }
 
@@ -113,8 +136,18 @@ public class AudioSender implements OnSendAudioListener {
     }
 
     @Override
-    public void onUpdateConnection() {
+    public void onUpdateConnection(WifiP2pManager mWifiManager, WifiP2pManager.Channel mWifiChannel) {
         isUpdate = true;
+        if (mWifiManager != null && mWifiChannel != null){
+            List<String> compareList = new ArrayList<>();
+            mWifiManager.requestGroupInfo(mWifiChannel, wifiP2pGroup -> {
+                for (WifiP2pDevice device : wifiP2pGroup.getClientList()){
+                    compareList.add(device.deviceAddress);
+                }
+                updateAddresses(compareList);
+                compareList.clear();
+            });
+        }
     }
 
     @Override

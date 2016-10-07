@@ -19,11 +19,9 @@ public class NetworkManager {
         routingTable.put(c.getMac(), c);
     }
 
-    public static void clientGone(Client c) {
-        if (c != null) {
-            Log.e("Manager", "clientGone: " + c);
-            routingTable.remove(c.getMac());
-        }
+    public static void clientGone(String mac) {
+            Log.e("Manager", "clientGone: " + mac);
+            routingTable.remove(mac);
     }
 
     public static Client getSelf() {

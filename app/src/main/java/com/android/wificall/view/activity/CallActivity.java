@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -101,6 +102,8 @@ public class CallActivity extends BaseActivity implements RetryExecution {
     private AudioManager mAudioManager;
     private SettingsContentObserver mSettingsContentObserver;
     private boolean isRecording = false;
+    private WifiP2pManager mWifiManager;
+    private WifiP2pManager.Channel mWifiChannel;
 
     @Override
     protected void onStart() {
@@ -162,6 +165,8 @@ public class CallActivity extends BaseActivity implements RetryExecution {
                 }
             };
         } else {
+            mWifiManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+            mWifiChannel = mWifiManager.initialize(this, getMainLooper(), null);
             mCallMessage.setText(getString(R.string.record_msg));
             mVolumeButton.setVisibility(View.GONE);
             mMuteButton.setImageResource(R.drawable.ic_microphone);
@@ -192,6 +197,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         mRecordTask = new RecordTask(this, RECORD_BUFFER_SIZE);
         mSendCallback = new AudioSender();
         mRecordTask.execute(new DefaultSubscriber<byte[]>() {
+
             @Override
             public void onNext(byte[] bytes) {
                 if (!isMute) {
@@ -248,7 +254,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         } else {
             if (mRecordTask != null) {
                 mRecordTask.updateRecorder();
-                mSendCallback.onUpdateConnection();
+                mSendCallback.onUpdateConnection(mWifiManager, mWifiChannel);
             }
         }
     }
