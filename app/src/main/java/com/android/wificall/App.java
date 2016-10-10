@@ -9,9 +9,12 @@ import android.os.Bundle;
 
 import com.android.wificall.view.activity.RoleActivity;
 import com.android.wificall.view.activity.WifiDirectActivity;
+import com.crashlytics.android.Crashlytics;
 import com.pixplicity.easyprefs.library.Prefs;
 
 import java.lang.reflect.Method;
+
+import io.fabric.sdk.android.Fabric;
 
 /**
  * Created by matviy on 28.07.16.
@@ -32,7 +35,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                 .setUseDefaultSharedPreference(true)
                 .build();
 
-        // Fabric.with(this, new Crashlytics());
+        Fabric.with(this, new Crashlytics());
         registerActivityLifecycleCallbacks(this);
     }
 
