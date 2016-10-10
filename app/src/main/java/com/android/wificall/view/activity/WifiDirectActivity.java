@@ -25,7 +25,6 @@ import android.widget.Toast;
 
 import com.android.wificall.App;
 import com.android.wificall.R;
-import com.android.wificall.data.Client;
 import com.android.wificall.data.Packet;
 import com.android.wificall.data.event.DisconnectEvent;
 import com.android.wificall.data.event.LeaveGroupEvent;
@@ -146,6 +145,7 @@ public class WifiDirectActivity extends BaseActivity
         }
     };
     private boolean isConnectClick = false;
+    private String groupOwnerName = "";
 
     @Override
     protected void onStart() {
@@ -204,6 +204,7 @@ public class WifiDirectActivity extends BaseActivity
         mAdapter = new PeersAdapter(this, null);
         mAdapter.setCallback(device -> {
             isConnectClick = true;
+            groupOwnerName = device.deviceName;
             connect(DeviceUtils.getConfig(device));
             showConnectingProgress(device.deviceAddress);
         });
@@ -644,21 +645,7 @@ public class WifiDirectActivity extends BaseActivity
                     }
                 });
             } else {
-                int count = NetworkManager.routingTable.size();
-                String[] values = new String[count];
-                int i = 0;
-                tvClientTitle.setText("Currently in this room (" + count + "): ");
-                if (count == 0) {
-                    tvClientTitle.setVisibility(View.GONE);
-                } else {
-                    tvClientTitle.setVisibility(View.VISIBLE);
-                }
-                for (Client c : NetworkManager.routingTable.values()) {
-                    values[i] = c.getMac();
-                    i++;
-                }
-                mClientsAdapter = new ClientsAdapter(this, values);
-                lvClients.setAdapter(mClientsAdapter);
+                tvClientTitle.setText(getString(R.string.connection_with, groupOwnerName));
             }
         }
     }
