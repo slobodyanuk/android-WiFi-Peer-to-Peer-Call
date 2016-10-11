@@ -20,5 +20,4 @@ public class Globals {
     public static final int FIND_SPEAKER_CASEVIEW_ID = 8;
     public static final int CALLING_SPEAKER_CASEVIEW_ID = 9;
 
-
 }
