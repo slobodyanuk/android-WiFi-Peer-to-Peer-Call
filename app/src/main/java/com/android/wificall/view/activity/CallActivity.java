@@ -342,6 +342,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
             stopUpdating();
             stopReceiving();
             stopRecording();
+            enableButtons(false);
         }
     }
 
@@ -354,6 +355,7 @@ public class CallActivity extends BaseActivity implements RetryExecution {
         isUpdating = false;
         mHandler.removeCallbacksAndMessages(null);
     }
+
 
     @Override
     protected int getLayoutResource() {

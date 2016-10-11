@@ -112,17 +112,14 @@ public class Packet {
 
         byte[] mac = getMacAsBytes(this.receiverMac);
 
-        for (int i = 2; i <= 7; i++) {
-            serialized[i] = mac[i - 2];
-        }
+        System.arraycopy(mac, 0, serialized, 2, 6);
+
         mac = getMacAsBytes(this.senderMac);
 
-        for (int i = 8; i <= 13; i++) {
-            serialized[i] = mac[i - 8];
-        }
-        for (int i = 14; i < serialized.length; i++) {
-            serialized[i] = data[i - 14];
-        }
+        System.arraycopy(mac, 0, serialized, 0, 11);
+        System.arraycopy(mac, 0, serialized, 8, 6);
+        System.arraycopy(data, 0, serialized, 14, serialized.length - 14);
+
         return serialized;
     }
 
@@ -134,9 +131,7 @@ public class Packet {
         String mac = getMacBytesAsString(inputData, 2);
         String receivermac = getMacBytesAsString(inputData, 8);
 
-        for (int i = 14; i < inputData.length; i++) {
-            data[i - 14] = inputData[i];
-        }
+        System.arraycopy(inputData, 14, data, 0, inputData.length - 14);
         return new Packet(type, data, mac, receivermac, timetolive);
     }
 
