@@ -259,6 +259,7 @@ public class WifiDirectActivity extends BaseActivity
 
     @Override
     public void showDetails(WifiP2pDevice device) {
+
     }
 
     private void cancelFindingPeers() {
